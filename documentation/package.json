@@ -1,0 +1,43 @@
+{
+  "name": "@svelte.kit/documentation",
+  "version": "0.0.0",
+  "description": "svelte.kit documentation",
+  "private": true,
+  "license": "MIT",
+  "homepage": "https://ap0nia.github.io/svelte.kit",
+  "funding": "https://github.com/ap0nia/svelte.kit",
+  "contributors": [
+    {
+      "name": "ap0nia",
+      "email": "",
+      "url": "https://github.com/ap0nia"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ap0nia/svelte.kit",
+    "directory": "documentation"
+  },
+  "bugs": {
+    "url": "https://github.com/ap0nia/svelte.kit/issues"
+  },
+  "keywords": [],
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/starlight": "^0.7.3",
+    "astro": "^2.10.5",
+    "sharp": "^0.32.3"
+  },
+  "packageManager": "pnpm@8.6.12",
+  "engines": {
+    "pnpm": "^8.0.0",
+    "node": ">=18"
+  }
+}
