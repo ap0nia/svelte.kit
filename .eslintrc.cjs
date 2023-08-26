@@ -20,6 +20,11 @@ const config = {
     'prettier',
   ],
   rules: {
+    /**
+     * @see https://github.com/import-js/eslint-plugin-import/issues/2802
+     */
+    'import/no-unresolved': 'off',
+
     '@typescript-eslint/no-unused-vars': [
       'error',
       {
