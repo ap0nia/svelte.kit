@@ -1,5 +1,5 @@
 {
-  "name": "@svelte.kit/sveltekit-adapter-node",
+  "name": "@svelte.kit/sveltekit-adapter-lambda",
   "version": "0.0.0",
   "description": "sveltekit adapter node",
   "private": true,
