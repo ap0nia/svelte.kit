@@ -1,0 +1,57 @@
+{
+  "name": "@svelte.kit/sveltekit-adapter-node",
+  "version": "0.0.0",
+  "description": "sveltekit adapter node",
+  "private": true,
+  "license": "MIT",
+  "homepage": "https://ap0nia.github.io/svelte.kit",
+  "funding": "https://github.com/ap0nia/svelte.kit",
+  "contributors": [
+    {
+      "name": "ap0nia",
+      "email": "",
+      "url": "https://github.com/ap0nia"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ap0nia/svelte.kit",
+    "directory": "packages/sveltekit-adapter-node"
+  },
+  "bugs": {
+    "url": "https://github.com/ap0nia/svelte.kit/issues"
+  },
+  "keywords": [],
+  "files": [
+    "src"
+  ],
+  "type": "module",
+  "main": "src/index.js",
+  "types": "src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.js"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      ".": [
+        "./src/index.d.ts"
+      ]
+    }
+  },
+  "scripts": {},
+  "dependencies": {
+    "@sveltejs/kit": "^1.23.0",
+    "esbuild": "^0.19.2"
+  },
+  "packageManager": "pnpm@8.6.12",
+  "engines": {
+    "pnpm": "^8.0.0",
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.119"
+  }
+}
