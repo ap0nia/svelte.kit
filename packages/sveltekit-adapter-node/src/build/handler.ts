@@ -17,20 +17,25 @@ import { serve } from './routing/static.js'
 const buildDirectory = url.fileURLToPath(import.meta.SERVER_DIR)
 
 const origin = env('ORIGIN', undefined)
-const xff_depth = parseInt(env('XFF_DEPTH', '1'))
-const address_header = env('ADDRESS_HEADER', '').toLowerCase()
-const protocol_header = env('PROTOCOL_HEADER', '').toLowerCase()
-const host_header = env('HOST_HEADER', 'host').toLowerCase()
-const body_size_limit = parseInt(env('BODY_SIZE_LIMIT', '524288'))
+const xffDepth = parseInt(env('XFF_DEPTH', '1'))
+const addressHeader = env('ADDRESS_HEADER', '').toLowerCase()
+const protocolHeader = env('PROTOCOL_HEADER', '').toLowerCase()
+const hostHeader = env('HOST_HEADER', 'host').toLowerCase()
+const bodySizeLimit = parseInt(env('BODY_SIZE_LIMIT', '524288'))
 
 const server = new Server(manifest)
 
 await server.init({ env: process.env as Record<string, string> })
 
+function notNull<T>(value: T): value is NonNullable<T> {
+  return value !== null
+}
+
 function sequence(handlers: Middleware[]): Middleware {
   const middleware: Middleware = (req, res, next) => {
-    const handle = (i: number): ReturnType<Middleware> =>
-      i < handlers.length ? handlers[i]?.(req, res, () => handle(i + 1)) : next()
+    const handle = (i: number): ReturnType<Middleware> => {
+      return i < handlers.length ? handlers[i]?.(req, res, () => handle(i + 1)) : next()
+    }
     return handle(0)
   }
 
@@ -42,18 +47,6 @@ export const handler = sequence(
     serve(path.join(buildDirectory, 'client'), true),
     serve(path.join(buildDirectory, 'static')),
     servePrerendered(buildDirectory),
-    createSsr(
-      server,
-      origin,
-      xff_depth,
-      address_header,
-      protocol_header,
-      host_header,
-      body_size_limit,
-    ),
+    createSsr(server, origin, xffDepth, addressHeader, protocolHeader, hostHeader, bodySizeLimit),
   ].filter(notNull),
 )
-
-function notNull<T>(value: T): value is NonNullable<T> {
-  return value !== null
-}
