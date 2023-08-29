@@ -6,6 +6,8 @@ import url from 'node:url'
 
 import { build as esbuildBuild } from 'esbuild'
 
+import { name } from '../package.json'
+
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url))
 
 /**
@@ -19,7 +21,7 @@ const require = topLevelModule.createRequire(import.meta.url);
 /**
  * Custom namespace for resolving virtual files.
  */
-const namespace = 'sveltekit-virtual'
+const virtualNamespace = 'sveltekit-virtual'
 
 /**
  * @type {import('.').default}
@@ -28,7 +30,7 @@ function createAdapter(opts = {}) {
   const { out = 'build', precompress, envPrefix = '', polyfill = true } = opts
 
   const adapter = {
-    name: '@ap0nia/sveltekit-adapter-node',
+    name,
 
     /**
      * @param {import('@sveltejs/kit').Builder} builder
@@ -69,6 +71,7 @@ function createAdapter(opts = {}) {
 
       builder.rimraf(out)
       builder.mkdirp(out)
+
       builder.rimraf(temporaryDirectory)
       builder.mkdirp(temporaryDirectory)
 
@@ -89,12 +92,12 @@ function createAdapter(opts = {}) {
 
       builder.writeServer(temporaryDirectory)
 
-      // Dynamically create a manifest in the temporary directory.
-      fs.writeFileSync(
-        manifest,
+      const manifestContents =
         `export const manifest = ${builder.generateManifest({ relativePath: './' })};\n\n` +
-          `export const prerendered = new Set(${JSON.stringify(builder.prerendered.paths)});\n`,
-      )
+        `export const prerendered = new Set(${JSON.stringify(builder.prerendered.paths)});\n`
+
+      // Dynamically create a manifest in the temporary directory.
+      fs.writeFileSync(manifest, manifestContents)
 
       await esbuildBuild({
         entryPoints: {
@@ -129,11 +132,11 @@ function createAdapter(opts = {}) {
               build.onResolve({ filter: /SHIMS/ }, (args) => {
                 return {
                   path: args.path,
-                  namespace,
+                  namespace: virtualNamespace,
                 }
               })
 
-              build.onLoad({ filter: /SHIMS/, namespace }, () => {
+              build.onLoad({ filter: /SHIMS/, namespace: virtualNamespace }, () => {
                 return {
                   resolveDir: 'node_modules',
                   contents: polyfill
