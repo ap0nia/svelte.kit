@@ -78,7 +78,7 @@ export class SvelteKitStack extends Stack {
     const handler = new lambda.Function(this, `${id}-lambda`, {
       runtime: lambda.Runtime.NODEJS_18_X,
       code: lambda.Code.fromAsset('./build/lambda'),
-      handler: 'lambda.handler',
+      handler: 'index.handler',
       timeout: Duration.seconds(5),
       memorySize: 256,
     })
@@ -92,7 +92,7 @@ export class SvelteKitStack extends Stack {
 
     const cloudFrontIntegration = new HttpUrlIntegration(
       `${id}-cloudfront-integration`,
-      `https://${distribution.distributionDomainName}_app/{proxy}`,
+      `https://${distribution.distributionDomainName}/_app/{proxy}`,
     )
 
     httpApi.addRoutes({
