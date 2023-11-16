@@ -21,6 +21,9 @@
     "url": "https://github.com/ap0nia/svelte.kit/issues"
   },
   "keywords": [],
+  "files": [
+    "src"
+  ],
   "type": "module",
   "main": "src/index.js",
   "types": "src/index.d.ts",
