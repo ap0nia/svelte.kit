@@ -14,17 +14,23 @@
 		"lint": "prettier --check . && eslint .",
 		"format": "prettier --write .",
 		"test:integration": "playwright test",
-		"test:unit": "vitest"
+		"test:unit": "vitest",
+		"dep": "cdk --app 'npx tsx tools/cdk/index.ts' deploy",
+		"des": "cdk --app 'npx tsx tools/cdk/index.ts' destroy"
 	},
 	"devDependencies": {
 		"@fontsource/fira-mono": "^4.5.10",
 		"@neoconfetti/svelte": "^1.0.0",
 		"@playwright/test": "^1.28.1",
+		"@svelte.kit/adapter-aws": "workspace:^",
+		"@svelte.kit/cdk": "workspace:^",
 		"@sveltejs/adapter-auto": "^2.0.0",
 		"@sveltejs/kit": "^1.27.4",
 		"@types/cookie": "^0.5.1",
 		"@typescript-eslint/eslint-plugin": "^6.0.0",
 		"@typescript-eslint/parser": "^6.0.0",
+		"aws-cdk": "^2.109.0",
+		"aws-cdk-lib": "^2.109.0",
 		"eslint": "^8.28.0",
 		"eslint-config-prettier": "^9.0.0",
 		"eslint-plugin-svelte": "^2.30.0",
@@ -33,6 +39,7 @@
 		"svelte": "^5.0.0-next.1",
 		"svelte-check": "^3.6.0",
 		"tslib": "^2.4.1",
+		"tsx": "^4.1.2",
 		"typescript": "^5.0.0",
 		"vite": "^4.4.2",
 		"vitest": "^0.32.2"

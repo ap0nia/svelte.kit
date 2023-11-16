@@ -1,5 +1,5 @@
 {
-  "name": "@svelte.kit/sveltekit-adapter-aws",
+  "name": "@svelte.kit/cdk",
   "version": "0.0.0",
   "description": "SvelteKit CDK constructs",
   "private": true,
@@ -22,5 +22,13 @@
     "url": "https://github.com/ap0nia/svelte.kit/issues"
   },
   "keywords": [],
-  "type": "module"
+  "type": "module",
+  "types": "./src/index.ts",
+  "main": "./src/index.ts",
+  "dependencies": {
+    "@aws-cdk/aws-apigatewayv2-alpha": "2.109.0-alpha.0",
+    "@aws-cdk/aws-apigatewayv2-integrations-alpha": "2.109.0-alpha.0",
+    "aws-cdk-lib": "^2.109.0",
+    "constructs": "^10.3.0"
+  }
 }
