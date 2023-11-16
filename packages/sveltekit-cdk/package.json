@@ -1,0 +1,26 @@
+{
+  "name": "@svelte.kit/sveltekit-adapter-aws",
+  "version": "0.0.0",
+  "description": "SvelteKit CDK constructs",
+  "private": true,
+  "license": "MIT",
+  "homepage": "https://ap0nia.github.io/svelte.kit",
+  "funding": "https://github.com/ap0nia/svelte.kit",
+  "contributors": [
+    {
+      "name": "ap0nia",
+      "email": "",
+      "url": "https://github.com/ap0nia"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ap0nia/svelte.kit",
+    "directory": "packages/sveltekit-adapter-aws"
+  },
+  "bugs": {
+    "url": "https://github.com/ap0nia/svelte.kit/issues"
+  },
+  "keywords": [],
+  "type": "module"
+}
