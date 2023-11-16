@@ -55,8 +55,6 @@ export async function handler(
   context: Context,
   callback: Callback,
 ): Promise<APIGatewayProxyResult | APIGatewayProxyResultV2> {
-  // debug("event", event);
-
   await initialized
 
   const internalEvent = isAPIGatewayProxyEventV2(event)
@@ -91,8 +89,6 @@ export async function handler(
     body: methodsForPrerenderedFiles.has(internalEvent.method) ? undefined : internalEvent.body,
   }
 
-  // debug("request", requestUrl, requestInit);
-
   const request = new Request(requestUrl, requestInit)
 
   const response = await server.respond(request, {
@@ -103,8 +99,6 @@ export async function handler(
     },
     getClientAddress: () => internalEvent.remoteAddress,
   })
-
-  // debug("response", response);
 
   return isAPIGatewayProxyEventV2(event)
     ? convertResponseToAPIGatewayProxyResultV2(response)
@@ -118,25 +112,79 @@ function isAPIGatewayProxyEventV2(
 }
 
 function convertAPIGatewayProxyEventV1ToRequest(event: APIGatewayProxyEvent): InternalEvent {
-  return {
+  const internalEvent = {
     method: event.httpMethod,
     path: event.path,
-    url: event.path + normalizeAPIGatewayProxyEventQueryParams(event),
-    body: Buffer.from(event.body ?? '', event.isBase64Encoded ? 'base64' : 'utf8'),
-    headers: normalizeAPIGatewayProxyEventHeaders(event),
     remoteAddress: event.requestContext.identity.sourceIp,
-  }
+  } as InternalEvent
+
+  let url: string
+  let body: Buffer
+  let headers: Record<string, string>
+
+  Object.defineProperties(internalEvent, {
+    url: {
+      enumerable: true,
+      get: () => {
+        url ??= event.path + normalizeAPIGatewayProxyEventQueryParams(event)
+        return url
+      },
+    },
+    body: {
+      enumerable: true,
+      get: () => {
+        body ??= Buffer.from(event.body ?? '', event.isBase64Encoded ? 'base64' : 'utf8')
+        return body
+      },
+    },
+    headers: {
+      enumerable: true,
+      get: () => {
+        headers ??= normalizeAPIGatewayProxyEventHeaders(event)
+        return headers
+      },
+    },
+  })
+
+  return internalEvent
 }
 
 function convertAPIGatewayProxyEventV2ToRequest(event: APIGatewayProxyEventV2): InternalEvent {
-  return {
+  const internalEvent = {
     method: event.requestContext.http.method,
     path: event.rawPath,
-    url: event.rawPath + (event.rawQueryString ? `?${event.rawQueryString}` : ''),
-    body: normalizeAPIGatewayProxyEventV2Body(event),
-    headers: normalizeAPIGatewayProxyEventHeaders(event),
     remoteAddress: event.requestContext.http.sourceIp,
-  }
+  } as InternalEvent
+
+  let url: string
+  let body: Buffer
+  let headers: Record<string, string>
+
+  Object.defineProperties(internalEvent, {
+    url: {
+      enumerable: true,
+      get: () => {
+        url ??= event.rawPath + (event.rawQueryString ? `?${event.rawQueryString}` : '')
+        return url
+      },
+    },
+    body: {
+      enumerable: true,
+      get: () => {
+        body ??= normalizeAPIGatewayProxyEventV2Body(event)
+        return body
+      },
+    },
+    headers: {
+      enumerable: true,
+      get: () => {
+        headers ??= normalizeAPIGatewayProxyEventHeaders(event)
+        return headers
+      },
+    },
+  })
+
+  return internalEvent
 }
 
 async function convertResponseToAPIGatewayProxyResultV1(
@@ -153,8 +201,6 @@ async function convertResponseToAPIGatewayProxyResultV1(
       : await response.text(),
     isBase64Encoded,
   }
-
-  // debug(response);
 
   return result
 }
@@ -173,8 +219,6 @@ async function convertResponseToAPIGatewayProxyResultV2(
       : await response.text(),
     isBase64Encoded,
   }
-
-  // debug(response);
 
   return result
 }

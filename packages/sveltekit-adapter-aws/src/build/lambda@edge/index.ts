@@ -46,5 +46,6 @@ export const handler: CloudFrontRequestHandler = async (event, _context, callbac
   request.uri = `/${prerenderedFile}`
 
   callback(null, request)
+
   return undefined
 }

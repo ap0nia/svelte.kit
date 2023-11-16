@@ -1,7 +1,7 @@
 {
-  "name": "@svelte.kit/sveltekit-adapter-lambda",
+  "name": "@svelte.kit/sveltekit-adapter-aws",
   "version": "0.0.0",
-  "description": "sveltekit adapter node",
+  "description": "SvelteKit adapter for AWS",
   "private": true,
   "license": "MIT",
   "homepage": "https://ap0nia.github.io/svelte.kit",
