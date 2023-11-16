@@ -1,6 +1,6 @@
 {
   "name": "@svelte.kit/adapter-aws",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "SvelteKit adapter for AWS",
   "license": "MIT",
   "homepage": "https://ap0nia.github.io/svelte.kit",
@@ -21,9 +21,6 @@
     "url": "https://github.com/ap0nia/svelte.kit/issues"
   },
   "keywords": [],
-  "files": [
-    "src"
-  ],
   "type": "module",
   "main": "src/index.js",
   "types": "src/index.d.ts",
@@ -40,17 +37,19 @@
       ]
     }
   },
-  "scripts": {},
   "dependencies": {
     "@sveltejs/kit": "^1.23.0",
     "esbuild": "^0.19.2"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.119"
   },
   "packageManager": "pnpm@8.6.12",
   "engines": {
     "pnpm": "^8.0.0",
     "node": ">=18"
   },
-  "devDependencies": {
-    "@types/aws-lambda": "^8.10.119"
+  "publishConfig": {
+    "access": "public"
   }
 }
