@@ -1,9 +1,6 @@
-import { HttpApi, HttpMethod } from '@aws-cdk/aws-apigatewayv2-alpha'
-import {
-  HttpUrlIntegration,
-  HttpLambdaIntegration,
-} from '@aws-cdk/aws-apigatewayv2-integrations-alpha'
-import { Duration, Stack, RemovalPolicy, type StackProps } from 'aws-cdk-lib'
+import { HttpApi } from '@aws-cdk/aws-apigatewayv2-alpha'
+import { HttpLambdaIntegration } from '@aws-cdk/aws-apigatewayv2-integrations-alpha'
+import { Duration, Fn, Stack, RemovalPolicy, type StackProps } from 'aws-cdk-lib'
 import * as awsCloudfront from 'aws-cdk-lib/aws-cloudfront'
 import * as awsCloudfrontOrigins from 'aws-cdk-lib/aws-cloudfront-origins'
 import * as awsIam from 'aws-cdk-lib/aws-iam'
@@ -51,6 +48,21 @@ export class SvelteKitStack extends Stack {
 
     websiteBucket.addToResourcePolicy(policyStatement)
 
+    const handler = new lambda.Function(this, `${id}-lambda`, {
+      runtime: lambda.Runtime.NODEJS_18_X,
+      code: lambda.Code.fromAsset('./build/lambda'),
+      handler: 'index.handler',
+      timeout: Duration.seconds(5),
+      memorySize: 256,
+    })
+
+    const lambdaIntegration = new HttpLambdaIntegration(`${id}-lambda-integration`, handler)
+
+    const httpApi = new HttpApi(this, `${id}-api`, {
+      createDefaultStage: true,
+      defaultIntegration: lambdaIntegration,
+    })
+
     /**
      * A CloudFront origin indicates a location where the CDN can direct requests to.
      * For a static website, direct all requests to the S3 bucket.
@@ -68,6 +80,13 @@ export class SvelteKitStack extends Stack {
       },
     })
 
+    const apiOrigin = new awsCloudfrontOrigins.HttpOrigin(
+      Fn.select(2, Fn.split('/', httpApi.url ?? '')),
+      {},
+    )
+
+    distribution.addBehavior('/*', apiOrigin, {})
+
     new s3Deployment.BucketDeployment(this, `${id}-bucket-deployment`, {
       sources: [s3Deployment.Source.asset('./build/s3')],
       destinationBucket: websiteBucket,
@@ -75,30 +94,15 @@ export class SvelteKitStack extends Stack {
       distributionPaths: ['/*'],
     })
 
-    const handler = new lambda.Function(this, `${id}-lambda`, {
-      runtime: lambda.Runtime.NODEJS_18_X,
-      code: lambda.Code.fromAsset('./build/lambda'),
-      handler: 'index.handler',
-      timeout: Duration.seconds(5),
-      memorySize: 256,
-    })
+    // const cloudFrontIntegration = new HttpUrlIntegration(
+    //   `${id}-cloudfront-integration`,
+    //   `https://${distribution.distributionDomainName}/_app/{proxy}`,
+    // )
 
-    const lambdaIntegration = new HttpLambdaIntegration(`${id}-lambda-integration`, handler)
-
-    const httpApi = new HttpApi(this, `${id}-api`, {
-      createDefaultStage: true,
-      defaultIntegration: lambdaIntegration,
-    })
-
-    const cloudFrontIntegration = new HttpUrlIntegration(
-      `${id}-cloudfront-integration`,
-      `https://${distribution.distributionDomainName}/_app/{proxy}`,
-    )
-
-    httpApi.addRoutes({
-      path: '/_app/{proxy+}',
-      methods: [HttpMethod.GET, HttpMethod.HEAD],
-      integration: cloudFrontIntegration,
-    })
+    // httpApi.addRoutes({
+    //   path: '/_app/{proxy+}',
+    //   methods: [HttpMethod.GET, HttpMethod.HEAD],
+    //   integration: cloudFrontIntegration,
+    // })
   }
 }
