@@ -1,17 +1,17 @@
 import { HttpApi } from '@aws-cdk/aws-apigatewayv2-alpha'
 import { HttpLambdaIntegration } from '@aws-cdk/aws-apigatewayv2-integrations-alpha'
-import { Duration, Fn, Stack, RemovalPolicy, type StackProps } from 'aws-cdk-lib'
+import { Duration, Fn, RemovalPolicy } from 'aws-cdk-lib'
 import * as awsCloudfront from 'aws-cdk-lib/aws-cloudfront'
 import * as awsCloudfrontOrigins from 'aws-cdk-lib/aws-cloudfront-origins'
 import * as awsIam from 'aws-cdk-lib/aws-iam'
 import * as lambda from 'aws-cdk-lib/aws-lambda'
 import * as s3 from 'aws-cdk-lib/aws-s3'
 import * as s3Deployment from 'aws-cdk-lib/aws-s3-deployment'
-import type { Construct } from 'constructs'
+import { Construct } from 'constructs'
 
-export class SvelteKitStack extends Stack {
-  constructor(scope: Construct, id: string, props?: StackProps) {
-    super(scope, id, props)
+export class SvelteKit extends Construct {
+  constructor(scope: Construct, id: string) {
+    super(scope, id)
 
     /**
      * Create an S3 bucket to hold the built static website's assets.
