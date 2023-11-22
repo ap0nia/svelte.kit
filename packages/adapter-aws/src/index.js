@@ -100,6 +100,9 @@ function createAdapter(userOptions = {}) {
 
       const prerenderedFiles = builder.writePrerendered(lambdaDirectory)
 
+      // Also copy the prerendered (static) files to the S3 directory.
+      builder.writePrerendered(s3Directory)
+
       if (options.precompress) {
         builder.log.minor('Compressing assets')
         await builder.compress(s3Directory)

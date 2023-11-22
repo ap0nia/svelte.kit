@@ -71,21 +71,53 @@ export class SvelteKitStack extends Stack {
       originAccessIdentity: cloudfrontOriginAccessIdentity,
     })
 
-    const distribution = new awsCloudfront.Distribution(this, `${id}-cloudfront-distribution`, {
-      defaultRootObject: 'index.html',
-      defaultBehavior: {
-        origin: s3Origin,
-        allowedMethods: awsCloudfront.AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
-        viewerProtocolPolicy: awsCloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
-      },
-    })
-
     const apiOrigin = new awsCloudfrontOrigins.HttpOrigin(
       Fn.select(2, Fn.split('/', httpApi.url ?? '')),
       {},
     )
 
-    distribution.addBehavior('/*', apiOrigin, {})
+    const lambdaCachePolicy = new awsCloudfront.CachePolicy(this, `${id}-cache-policy`, {
+      headerBehavior: awsCloudfront.CacheHeaderBehavior.none(),
+      queryStringBehavior: awsCloudfront.CacheQueryStringBehavior.none(),
+      cookieBehavior: awsCloudfront.CacheCookieBehavior.none(),
+      enableAcceptEncodingGzip: true,
+      enableAcceptEncodingBrotli: true,
+      minTtl: Duration.seconds(0),
+      maxTtl: Duration.seconds(31536000),
+      defaultTtl: Duration.seconds(0),
+    })
+
+    const distribution = new awsCloudfront.Distribution(this, `${id}-cloudfront-distribution`, {
+      defaultBehavior: {
+        origin: apiOrigin,
+        allowedMethods: awsCloudfront.AllowedMethods.ALLOW_ALL,
+        cachedMethods: awsCloudfront.CachedMethods.CACHE_GET_HEAD_OPTIONS,
+        cachePolicy: lambdaCachePolicy,
+        viewerProtocolPolicy: awsCloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+      },
+    })
+
+    distribution.addBehavior('_app/*', s3Origin, {
+      allowedMethods: awsCloudfront.AllowedMethods.ALLOW_ALL,
+      cachedMethods: awsCloudfront.CachedMethods.CACHE_GET_HEAD_OPTIONS,
+      cachePolicy: awsCloudfront.CachePolicy.CACHING_OPTIMIZED,
+      originRequestPolicy: awsCloudfront.OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
+      viewerProtocolPolicy: awsCloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+    })
+
+    distribution.addBehavior('favicon.png', s3Origin, {
+      allowedMethods: awsCloudfront.AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
+      cachedMethods: awsCloudfront.CachedMethods.CACHE_GET_HEAD_OPTIONS,
+      cachePolicy: awsCloudfront.CachePolicy.CACHING_OPTIMIZED,
+      viewerProtocolPolicy: awsCloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+    })
+
+    distribution.addBehavior('robots.txt', s3Origin, {
+      allowedMethods: awsCloudfront.AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
+      cachedMethods: awsCloudfront.CachedMethods.CACHE_GET_HEAD_OPTIONS,
+      cachePolicy: awsCloudfront.CachePolicy.CACHING_OPTIMIZED,
+      viewerProtocolPolicy: awsCloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+    })
 
     new s3Deployment.BucketDeployment(this, `${id}-bucket-deployment`, {
       sources: [s3Deployment.Source.asset('./build/s3')],
@@ -93,16 +125,5 @@ export class SvelteKitStack extends Stack {
       distribution: distribution,
       distributionPaths: ['/*'],
     })
-
-    // const cloudFrontIntegration = new HttpUrlIntegration(
-    //   `${id}-cloudfront-integration`,
-    //   `https://${distribution.distributionDomainName}/_app/{proxy}`,
-    // )
-
-    // httpApi.addRoutes({
-    //   path: '/_app/{proxy+}',
-    //   methods: [HttpMethod.GET, HttpMethod.HEAD],
-    //   integration: cloudFrontIntegration,
-    // })
   }
 }

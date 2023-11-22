@@ -12,3 +12,6 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
 cdk.out
+
+# sst
+.sst
