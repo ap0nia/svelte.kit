@@ -48,6 +48,9 @@ export class SvelteKit extends Construct {
 
     websiteBucket.addToResourcePolicy(policyStatement)
 
+    /**
+     * Lambda function that runs the serverless SvelteKit server.
+     */
     const handler = new lambda.Function(this, `${id}-lambda`, {
       runtime: lambda.Runtime.NODEJS_18_X,
       code: lambda.Code.fromAsset('./build/lambda'),
@@ -64,19 +67,20 @@ export class SvelteKit extends Construct {
     })
 
     /**
-     * A CloudFront origin indicates a location where the CDN can direct requests to.
-     * For a static website, direct all requests to the S3 bucket.
+     * @see https://github.com/aws/aws-cdk/issues/1882#issuecomment-498024589
      */
+    const apiOrigin = new awsCloudfrontOrigins.HttpOrigin(
+      Fn.select(2, Fn.split('/', httpApi.url ?? '')),
+    )
+
     const s3Origin = new awsCloudfrontOrigins.S3Origin(websiteBucket, {
       originAccessIdentity: cloudfrontOriginAccessIdentity,
     })
 
-    const apiOrigin = new awsCloudfrontOrigins.HttpOrigin(
-      Fn.select(2, Fn.split('/', httpApi.url ?? '')),
-      {},
-    )
-
-    const lambdaCachePolicy = new awsCloudfront.CachePolicy(this, `${id}-cache-policy`, {
+    /**
+     * Cache policy specifically for Lambda, but I guess both origins will use it.
+     */
+    const cachePolicy = new awsCloudfront.CachePolicy(this, `${id}-cache-policy`, {
       headerBehavior: awsCloudfront.CacheHeaderBehavior.none(),
       queryStringBehavior: awsCloudfront.CacheQueryStringBehavior.none(),
       cookieBehavior: awsCloudfront.CacheCookieBehavior.none(),
@@ -87,38 +91,31 @@ export class SvelteKit extends Construct {
       defaultTtl: Duration.seconds(0),
     })
 
+    /**
+     * Origin group that directs requests to API Gateway, then fallsback to S3.
+     */
+    const originGroup = new awsCloudfrontOrigins.OriginGroup({
+      primaryOrigin: apiOrigin,
+      fallbackOrigin: s3Origin,
+      fallbackStatusCodes: [403, 404, 405, 414, 416, 500, 502, 503, 504],
+    })
+
+    /**
+     * CloudFront serves as a reverse-proxy.
+     */
     const distribution = new awsCloudfront.Distribution(this, `${id}-cloudfront-distribution`, {
       defaultBehavior: {
-        origin: apiOrigin,
+        origin: originGroup,
         allowedMethods: awsCloudfront.AllowedMethods.ALLOW_ALL,
         cachedMethods: awsCloudfront.CachedMethods.CACHE_GET_HEAD_OPTIONS,
-        cachePolicy: lambdaCachePolicy,
+        cachePolicy: cachePolicy,
         viewerProtocolPolicy: awsCloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
       },
     })
 
-    distribution.addBehavior('_app/*', s3Origin, {
-      allowedMethods: awsCloudfront.AllowedMethods.ALLOW_ALL,
-      cachedMethods: awsCloudfront.CachedMethods.CACHE_GET_HEAD_OPTIONS,
-      cachePolicy: awsCloudfront.CachePolicy.CACHING_OPTIMIZED,
-      originRequestPolicy: awsCloudfront.OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
-      viewerProtocolPolicy: awsCloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
-    })
-
-    distribution.addBehavior('favicon.png', s3Origin, {
-      allowedMethods: awsCloudfront.AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
-      cachedMethods: awsCloudfront.CachedMethods.CACHE_GET_HEAD_OPTIONS,
-      cachePolicy: awsCloudfront.CachePolicy.CACHING_OPTIMIZED,
-      viewerProtocolPolicy: awsCloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
-    })
-
-    distribution.addBehavior('robots.txt', s3Origin, {
-      allowedMethods: awsCloudfront.AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
-      cachedMethods: awsCloudfront.CachedMethods.CACHE_GET_HEAD_OPTIONS,
-      cachePolicy: awsCloudfront.CachePolicy.CACHING_OPTIMIZED,
-      viewerProtocolPolicy: awsCloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
-    })
-
+    /**
+     * Upload the built static website's assets to the S3 bucket.
+     */
     new s3Deployment.BucketDeployment(this, `${id}-bucket-deployment`, {
       sources: [s3Deployment.Source.asset('./build/s3')],
       destinationBucket: websiteBucket,
