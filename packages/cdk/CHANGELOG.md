@@ -1,5 +1,12 @@
 # @svelte.kit/cdk
 
+## 0.1.2
+
+### Patch Changes
+
+- b1a8bd4: feat: use origin groups for cdk package
+- 7e25fcd: feat: use origin group with fallback for cdk
+
 ## 0.1.1
 
 ### Patch Changes
