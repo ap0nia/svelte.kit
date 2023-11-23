@@ -97,7 +97,7 @@ export class SvelteKit extends Construct {
     const originGroup = new awsCloudfrontOrigins.OriginGroup({
       primaryOrigin: apiOrigin,
       fallbackOrigin: s3Origin,
-      fallbackStatusCodes: [403, 404, 405, 500, 502, 503, 504],
+      fallbackStatusCodes: [400, 403, 404, 416, 500, 502, 503, 504],
     })
 
     /**
