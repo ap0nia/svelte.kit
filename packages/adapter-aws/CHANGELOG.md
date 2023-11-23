@@ -1,5 +1,11 @@
 # @svelte.kit/adapter-aws
 
+## 0.1.4
+
+### Patch Changes
+
+- 3de6f88: fix: invalid status code for cloudfront
+
 ## 0.1.3
 
 ### Patch Changes
