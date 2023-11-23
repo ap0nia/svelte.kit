@@ -1,5 +1,11 @@
 # @svelte.kit/adapter-node
 
+## 0.1.3
+
+### Patch Changes
+
+- 7b7d3c5: fix: too many status codes for cloudformation
+
 ## 0.1.2
 
 ### Patch Changes
