@@ -1,6 +1,6 @@
 {
   "name": "@svelte.kit/adapter-aws",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "SvelteKit adapter for AWS",
   "license": "MIT",
   "homepage": "https://ap0nia.github.io/svelte.kit",

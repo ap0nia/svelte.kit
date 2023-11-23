@@ -1,5 +1,11 @@
 # @svelte.kit/adapter-node
 
+## 0.1.5
+
+### Patch Changes
+
+- 95273e1: revert: origin group bad
+
 ## 0.1.4
 
 ### Patch Changes
