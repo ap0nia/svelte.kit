@@ -36,6 +36,9 @@ jobs:
       - name: Build documentation
         run: pnpm --filter @svelte.kit/documentation build
 
+      - name: bruh
+        run: cat documentation/dist/index.html
+
       - name: Upload documentation artifacts
         uses: actions/upload-pages-artifact@v2
         with:
