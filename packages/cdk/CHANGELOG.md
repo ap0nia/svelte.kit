@@ -1,5 +1,12 @@
 # @svelte.kit/cdk
 
+## 0.2.0
+
+### Minor Changes
+
+- aecca6a: feat: configuration options for cdk package
+  feat: documentation
+
 ## 0.1.5
 
 ### Patch Changes

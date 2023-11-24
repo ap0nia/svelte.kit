@@ -1,6 +1,6 @@
 {
   "name": "@svelte.kit/cdk",
-  "version": "0.1.5",
+  "version": "0.2.0",
   "description": "SvelteKit CDK constructs",
   "license": "MIT",
   "homepage": "https://ap0nia.github.io/svelte.kit",
