@@ -45,7 +45,7 @@ function defineConfig() {
 
   if (ci.isCI) {
     config.site = repository.url
-    config.base = `/${repositoryName}`
+    // config.base = `/${repositoryName}`
   }
 
   return config
