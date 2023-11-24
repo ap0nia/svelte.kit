@@ -141,10 +141,10 @@ importers:
         version: 2.109.0
       aws-cdk-lib:
         specifier: 2.101.1
-        version: 2.101.1(constructs@10.2.69)
+        version: 2.101.1(constructs@10.0.0)
       constructs:
-        specifier: 10.2.69
-        version: 10.2.69
+        specifier: 10.0.0
+        version: 10.0.0
       eslint:
         specifier: ^8.28.0
         version: 8.46.0
@@ -233,16 +233,16 @@ importers:
     dependencies:
       '@aws-cdk/aws-apigatewayv2-alpha':
         specifier: 2.109.0-alpha.0
-        version: 2.109.0-alpha.0(aws-cdk-lib@2.109.0)(constructs@10.3.0)
+        version: 2.109.0-alpha.0(aws-cdk-lib@2.109.0)(constructs@10.0.0)
       '@aws-cdk/aws-apigatewayv2-integrations-alpha':
         specifier: 2.109.0-alpha.0
-        version: 2.109.0-alpha.0(@aws-cdk/aws-apigatewayv2-alpha@2.109.0-alpha.0)(aws-cdk-lib@2.109.0)(constructs@10.3.0)
+        version: 2.109.0-alpha.0(@aws-cdk/aws-apigatewayv2-alpha@2.109.0-alpha.0)(aws-cdk-lib@2.109.0)(constructs@10.0.0)
       aws-cdk-lib:
         specifier: ^2.109.0
-        version: 2.109.0(constructs@10.3.0)
+        version: 2.109.0(constructs@10.0.0)
       constructs:
-        specifier: ^10.3.0
-        version: 10.3.0
+        specifier: ^10.0.0
+        version: 10.0.0
 
 packages:
   /@aashutoshrathi/word-wrap@1.2.6:
@@ -457,7 +457,7 @@ packages:
         integrity: sha512-DDt4SLdLOwWCjGtltH4VCST7hpOI5DzieuhGZsBpZ+AgJdSI2GCjklCXm0GCTwJG/SolkL5dtQXyUKgg9luBDg==,
       }
 
-  /@aws-cdk/aws-apigatewayv2-alpha@2.109.0-alpha.0(aws-cdk-lib@2.109.0)(constructs@10.3.0):
+  /@aws-cdk/aws-apigatewayv2-alpha@2.109.0-alpha.0(aws-cdk-lib@2.109.0)(constructs@10.0.0):
     resolution:
       {
         integrity: sha512-hT6BHr2r3AJCooWeuh2coUixyXnM8LCppoggE8jgciGLJeQB5tqBHJswWOfKVHy862rrl+ciWIzekqax1HVzpQ==,
@@ -467,11 +467,11 @@ packages:
       aws-cdk-lib: ^2.109.0
       constructs: ^10.0.0
     dependencies:
-      aws-cdk-lib: 2.109.0(constructs@10.3.0)
-      constructs: 10.3.0
+      aws-cdk-lib: 2.109.0(constructs@10.0.0)
+      constructs: 10.0.0
     dev: false
 
-  /@aws-cdk/aws-apigatewayv2-integrations-alpha@2.109.0-alpha.0(@aws-cdk/aws-apigatewayv2-alpha@2.109.0-alpha.0)(aws-cdk-lib@2.109.0)(constructs@10.3.0):
+  /@aws-cdk/aws-apigatewayv2-integrations-alpha@2.109.0-alpha.0(@aws-cdk/aws-apigatewayv2-alpha@2.109.0-alpha.0)(aws-cdk-lib@2.109.0)(constructs@10.0.0):
     resolution:
       {
         integrity: sha512-1+Gw5QBsfkT/nf+muizzAU0bh2YffqAHsJasevk/XIDr0msQGNerIJQSrB93gRzT+5YLRCglCRskIFF7phFulg==,
@@ -482,9 +482,9 @@ packages:
       aws-cdk-lib: ^2.109.0
       constructs: ^10.0.0
     dependencies:
-      '@aws-cdk/aws-apigatewayv2-alpha': 2.109.0-alpha.0(aws-cdk-lib@2.109.0)(constructs@10.3.0)
-      aws-cdk-lib: 2.109.0(constructs@10.3.0)
-      constructs: 10.3.0
+      '@aws-cdk/aws-apigatewayv2-alpha': 2.109.0-alpha.0(aws-cdk-lib@2.109.0)(constructs@10.0.0)
+      aws-cdk-lib: 2.109.0(constructs@10.0.0)
+      constructs: 10.0.0
     dev: false
 
   /@aws-crypto/crc32@3.0.0:
@@ -5386,7 +5386,7 @@ packages:
     engines: { node: '>= 0.4' }
     dev: true
 
-  /aws-cdk-lib@2.101.1(constructs@10.2.69):
+  /aws-cdk-lib@2.101.1(constructs@10.0.0):
     resolution:
       {
         integrity: sha512-kKrJ0CcD82IyohjB3TRy34whf22GI6Y2bIrkBmui+fCb2t13+ToJb7zKBRmL6C090OsoiU/q+H6/WIZWOoYDvQ==,
@@ -5400,7 +5400,7 @@ packages:
       '@aws-cdk/asset-node-proxy-agent-v6': 2.0.1
       '@balena/dockerignore': 1.0.2
       case: 1.6.3
-      constructs: 10.2.69
+      constructs: 10.0.0
       fs-extra: 11.1.1
       ignore: 5.2.4
       jsonschema: 1.4.1
@@ -5422,7 +5422,7 @@ packages:
       - table
       - yaml
 
-  /aws-cdk-lib@2.109.0(constructs@10.3.0):
+  /aws-cdk-lib@2.109.0(constructs@10.0.0):
     resolution:
       {
         integrity: sha512-Va5j3eOrepm0H7a/VPvzCDRuPAL7z/xYMlrMJdFYHA3G1GmRvXnDgHWTiUYXh1AuBqJ4zUd4StRrBQhufAtHWw==,
@@ -5434,7 +5434,7 @@ packages:
       '@aws-cdk/asset-awscli-v1': 2.2.201
       '@aws-cdk/asset-kubectl-v20': 2.1.2
       '@aws-cdk/asset-node-proxy-agent-v6': 2.0.1
-      constructs: 10.3.0
+      constructs: 10.0.0
     dev: false
     bundledDependencies:
       - '@balena/dockerignore'
@@ -6156,21 +6156,12 @@ packages:
       well-known-symbols: 2.0.0
     dev: true
 
-  /constructs@10.2.69:
+  /constructs@10.0.0:
     resolution:
       {
-        integrity: sha512-0AiM/uQe5Uk6JVe/62oolmSN2MjbFQkOlYrM3fFGZLKuT+g7xlAI10EebFhyCcZwI2JAcWuWCmmCAyCothxjuw==,
+        integrity: sha512-MIwjmrXZpM9RtwyrSD4HotDIQl8HTdIefQhU+MU1asvtSyVN3kK8kjeUOWMFb+fdyT4RX3QvvcaaPBluLEX1SA==,
       }
-    engines: { node: '>= 16.14.0' }
-    dev: true
-
-  /constructs@10.3.0:
-    resolution:
-      {
-        integrity: sha512-vbK8i3rIb/xwZxSpTjz3SagHn1qq9BChLEfy5Hf6fB3/2eFbrwt2n9kHwQcS0CPTRBesreeAcsJfMq2229FnbQ==,
-      }
-    engines: { node: '>= 16.14.0' }
-    dev: false
+    engines: { node: '>= 10.17.0' }
 
   /conventional-changelog-angular@5.0.13:
     resolution:

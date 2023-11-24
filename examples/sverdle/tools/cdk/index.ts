@@ -1,12 +1,14 @@
-import { App } from 'aws-cdk-lib';
-import { SvelteKitStack } from '@svelte.kit/cdk';
+import { App, Stack } from 'aws-cdk-lib';
+import { SvelteKit } from '@svelte.kit/cdk';
 
 async function main() {
 	const stackName = `sveltekit-adapter-aws-test`;
 
 	const app = new App({ autoSynth: true });
 
-	new SvelteKitStack(app, stackName);
+	const stack = new Stack(app, stackName);
+
+	new SvelteKit(stack, stackName);
 }
 
 main();

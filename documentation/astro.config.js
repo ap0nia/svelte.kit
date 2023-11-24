@@ -4,7 +4,7 @@ import starlight from '@astrojs/starlight'
 export default defineConfig({
   integrations: [
     starlight({
-      title: 'Svelte.Kit Docs',
+      title: 'Svelte.Kit',
       social: {
         github: 'https://github.com/ap0nia/svelte.kit',
       },

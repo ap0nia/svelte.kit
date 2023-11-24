@@ -1,4 +1,130 @@
 ---
 title: Introduction
-description: Get started with @svelte.kit/cdk for AWS CDK.
+description: Integrate with the AWS CDK deployment framework with @svelte.kit/cdk.
 ---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+import FileTree from '../../../../components/file-tree/index.astro';
+
+
+## Getting Started
+
+Install the adapter by running the following command in your terminal:
+
+<Tabs>
+<TabItem label="npm">
+
+```sh
+npm install --save-dev @svelte.kit/cdk
+```
+
+</TabItem>
+<TabItem label="pnpm">
+
+```sh
+pnpm install --save-dev @svelte.kit/cdk
+```
+
+</TabItem>
+<TabItem label="Yarn">
+
+```sh
+yarn add --dev @svelte.kit/cdk
+```
+
+</TabItem>
+</Tabs>
+
+
+## Create a CDK App
+
+It's completely fine to perform all these stops at the top level of the module.
+The example encapsulates it in a `main` function that immediately executes.
+
+```ts
+import { App, Stack } from 'aws-cdk-lib';
+import { SvelteKit } from '@svelte.kit/cdk';
+
+function main() {
+	const stackName = `sveltekit-adapter-aws-test`;
+
+	const app = new App({ autoSynth: true });
+
+  const stack = new Stack(app, stackName)
+
+	new SvelteKit(stack, stackName);
+}
+
+main();
+```
+
+## Build the Project
+
+This package is not responsible for building the project.
+It expects 2-3 distinct directories to be available in the built contents:
+
+- `lambda`
+- `s3`
+- `lambda@edge` (optional)
+
+
+#### `lambda`
+
+Should contain the primary Lambda handler function that runs during SSR and API requrests,
+as well as pre-rendered pages.
+
+#### `s3`
+
+Should contain the static assets that are served from S3. e.g. everything in
+[SvelteKit's app directory](https://kit.svelte.dev/docs/configuration#appdir).
+
+#### `lambda@edge`
+
+Contains a Lambda@Edge function that runs during CloudFront requests to perform redirects to
+static HTML files in S3.
+
+For example, if a static HTML file is at `/about.html` in the S3 bucket, and the user requests
+the `/about`, `/about/index`, or `/about/index.html` routes, the function should correctly
+rewrite the URL path to `/about.html`, so it gets redirected by the CloudFront Distribution accordingly.
+
+
+## Run the CDK app
+
+Example commands are demonstrated below.
+`tsx` is used as a fast and convenient TypeScript executor.
+Assuming `aws-cdk-lib` is installed in the current project, `yarn` and `pnpm` can
+execute it directly. `npm` still requires `npx` to execute it.
+
+<Tabs>
+<TabItem label="npm">
+
+```sh
+npx cdk --app 'npx tsx tools/cdk/index.ts' deploy
+```
+
+</TabItem>
+<TabItem label="pnpm">
+
+```sh
+pnpm cdk --app 'pnpx tsx tools/cdk/index.ts' deploy
+```
+
+</TabItem>
+<TabItem label="Yarn">
+
+```sh
+yarn cdk --app 'yarn tsx tools/cdk/index.ts' deploy
+```
+
+</TabItem>
+</Tabs>
+
+## Configuration Options (TODO)
+- [ ] Add customization options - there isn't any way to configure the low-level behavior of the
+  construct as it reads and allocates resources for SvelteKit project.
+  It __does__ return the created constructs for customization later in the pipeline.
+  It's intended to provide first class support to the default configuration used `@svelte.kit/adapter-aws`.
+
+- [ ] Read the config from the nearest `svelte.config.js` to make more informed decisions about the build procedure.
+  Namely, it would grab the `adapter` property and extract the user-provided options
+  (without actually executing the adapter, since that's only supposed to happen during a build process).

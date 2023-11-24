@@ -1,6 +1,6 @@
 ---
 title: Introduction
-description: '@svelte.kit generates build outputs for serverless deployment on AWS.'
+description: Generate build outputs ready for AWS deployment with @svelte.kit.
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
@@ -152,7 +152,8 @@ This directory contains the primary Lambda handler function that runs during SSR
 It's based off [@sveltejs/adapter-node](https://kit.svelte.dev/docs/adapter-node)
 and starts up a [polka web-server](https://github.com/lukeed/polka) with specialized middleware to handle requests.
 
-(TODO/WIP is migrating to [uwebsockets for that blazingly fast performance](https://github.com/uNetworking/uWebSockets.js).
+TODO:
+Migrate to [uwebsockets for that blazingly fast performance](https://github.com/uNetworking/uWebSockets.js).
 
 Because it's based off the Node.js adapter which reads and serves files directly from
 the file system, pre-rendered pages are also uploaded with the function.
