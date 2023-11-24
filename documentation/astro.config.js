@@ -1,9 +1,11 @@
 // @ts-check
 
-import starlight from '@astrojs/starlight'
 import ci from 'ci-info'
+import relativeLinks from 'astro-relative-links'
+import starlight from '@astrojs/starlight'
 
 import { repository } from './package.json'
+
 const repositoryName = repository.url.split('/').pop() ?? ''
 
 /**
@@ -29,6 +31,8 @@ function defineConfig() {
           },
         ],
       }),
+
+      relativeLinks(),
     ],
 
     // Process images with sharp: https://docs.astro.build/en/guides/assets/#using-sharp
