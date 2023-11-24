@@ -19,17 +19,17 @@ npm install --save-dev @svelte.kit/cdk
 ```
 
 </TabItem>
+<TabItem label="yarn">
+
+```sh
+yarn add --dev @svelte.kit/cdk
+```
+
+</TabItem>
 <TabItem label="pnpm">
 
 ```sh
 pnpm install --save-dev @svelte.kit/cdk
-```
-
-</TabItem>
-<TabItem label="Yarn">
-
-```sh
-yarn add --dev @svelte.kit/cdk
 ```
 
 </TabItem>
@@ -92,7 +92,7 @@ rewrite the URL path to `/about.html`, so it gets redirected by the CloudFront D
 
 Example commands are demonstrated below.
 `tsx` is used as a fast and convenient TypeScript executor.
-Assuming `aws-cdk-lib` is installed in the current project, `yarn` and `pnpm` can
+If `aws-cdk-lib` is installed in the current project, `yarn` and `pnpm` can
 execute it directly. `npm` still requires `npx` to execute it.
 
 <Tabs>
@@ -103,6 +103,13 @@ npx cdk --app 'npx tsx tools/cdk/index.ts' deploy
 ```
 
 </TabItem>
+<TabItem label="yarn">
+
+```sh
+yarn cdk --app 'yarn tsx tools/cdk/index.ts' deploy
+```
+
+</TabItem>
 <TabItem label="pnpm">
 
 ```sh
@@ -110,21 +117,20 @@ pnpm cdk --app 'pnpx tsx tools/cdk/index.ts' deploy
 ```
 
 </TabItem>
-<TabItem label="Yarn">
 
-```sh
-yarn cdk --app 'yarn tsx tools/cdk/index.ts' deploy
-```
-
-</TabItem>
 </Tabs>
 
-## Configuration Options (TODO)
-- [ ] Add customization options - there isn't any way to configure the low-level behavior of the
-  construct as it reads and allocates resources for SvelteKit project.
-  It __does__ return the created constructs for customization later in the pipeline.
-  It's intended to provide first class support to the default configuration used `@svelte.kit/adapter-aws`.
+## Configuration
 
-- [ ] Read the config from the nearest `svelte.config.js` to make more informed decisions about the build procedure.
-  Namely, it would grab the `adapter` property and extract the user-provided options
-  (without actually executing the adapter, since that's only supposed to happen during a build process).
+- out (default: `build`) - The directory to write the built files to.
+- `s3Directory` (default: `s3`) - The directory to upload to S3.
+- `lambdaDirectory` (default: `lambda`) - The directory to upload to Lambda.
+- `lambdaEdgeDirectory` (default: `lambda@edge`) - The directory to upload to Lambda@Edge.
+- `lambdaHandler` (default: `index.handler`) - The name of the Lambda handler function.
+- `constructProps` (default: `{}`) - Directly customize/override props provided to the constructs.
+
+### TODO
+- [ ] (Successfully) read the config from the nearest `svelte.config.js`
+  to automatically load the config used by `@svelte.kit/adapter-aws`.
+
+  SvelteKit is setup weird so `JITI` and `module.createRequire` can't read it in their default configuration

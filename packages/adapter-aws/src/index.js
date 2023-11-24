@@ -47,7 +47,7 @@ function createAdapter(userOptions = {}) {
   const adapter = {
     ...options,
 
-    name: '@ap0nia/sveltekit-adapter-lambda',
+    name: '@ap0nia/sveltekit-aws',
 
     /**
      * @param {import('@sveltejs/kit').Builder} builder

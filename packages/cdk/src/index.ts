@@ -14,6 +14,8 @@ import * as s3 from 'aws-cdk-lib/aws-s3'
 import * as s3Deployment from 'aws-cdk-lib/aws-s3-deployment'
 import { Construct } from 'constructs'
 
+// import { loadSvelteKitConfig } from './config'
+
 /**
  * Configure the deployed infrastructure.
  */
@@ -63,22 +65,22 @@ export type SvelteKitOptions = {
  * Props for all the allocated constructs.
  */
 export type SvelteKitConstructProps = {
-  bucket?: s3.BucketProps
-  originAccessIdentity?: awsCloudfront.OriginAccessIdentityProps
-  policyStatement?: awsIam.PolicyStatementProps
-  handler?: lambda.FunctionProps
-  lambdaIntegration?: HttpLambdaIntegrationProps
-  httpApi?: HttpApi
-  s3Origin?: awsCloudfrontOrigins.S3OriginProps
-  apiOrigin?: awsCloudfrontOrigins.HttpOriginProps
-  cachePolicy?: awsCloudfront.CachePolicyProps
-  distribution?: awsCloudfront.DistributionProps
-  bucketDeployment?: s3Deployment.BucketDeploymentProps
+  bucket?: (scope: SvelteKit) => s3.BucketProps
+  originAccessIdentity?: (scope: SvelteKit) => awsCloudfront.OriginAccessIdentityProps
+  policyStatement?: (scope: SvelteKit) => awsIam.PolicyStatementProps
+  handler?: (scope: SvelteKit) => lambda.FunctionProps
+  lambdaIntegration?: (scope: SvelteKit) => HttpLambdaIntegrationProps
+  httpApi?: (scope: SvelteKit) => HttpApi
+  s3Origin?: (scope: SvelteKit) => awsCloudfrontOrigins.S3OriginProps
+  apiOrigin?: (scope: SvelteKit) => awsCloudfrontOrigins.HttpOriginProps
+  cachePolicy?: (scope: SvelteKit) => awsCloudfront.CachePolicyProps
+  distribution?: (scope: SvelteKit) => awsCloudfront.DistributionProps
+  bucketDeployment?: (scope: SvelteKit) => s3Deployment.BucketDeploymentProps
 
   /**
    * Props that are provided to all CloudFront behaviors for static assets from S3.
    */
-  staticBehaviour?: awsCloudfront.BehaviorOptions
+  staticBehaviour?: (scope: SvelteKit) => awsCloudfront.BehaviorOptions
 }
 
 /**
@@ -164,19 +166,22 @@ export class SvelteKit extends Construct {
       constructProps: options.constructProps ?? {},
     }
 
+    // TODO: successfully read the SvelteKit config file
+    // const svelteKitConfig = loadSvelteKitConfig()
+
     const s3Directory = path.join(this.options.out, this.options.s3Directory)
     const lambdaDirectory = path.join(this.options.out, this.options.lambdaDirectory)
 
     this.bucket = new s3.Bucket(this, `${id}-bucket`, {
       removalPolicy: RemovalPolicy.DESTROY,
       autoDeleteObjects: true,
-      ...this.options.constructProps.bucket,
+      ...this.options.constructProps.bucket?.(this),
     })
 
     this.originAccessIdentity = new awsCloudfront.OriginAccessIdentity(
       this,
       `${id}-cloudfront-OAI`,
-      this.options.constructProps.originAccessIdentity,
+      this.options.constructProps.originAccessIdentity?.(this),
     )
 
     this.policyStatement = new awsIam.PolicyStatement({
@@ -187,7 +192,7 @@ export class SvelteKit extends Construct {
           this.originAccessIdentity.cloudFrontOriginAccessIdentityS3CanonicalUserId,
         ),
       ],
-      ...this.options.constructProps.policyStatement,
+      ...this.options.constructProps.policyStatement?.(this),
     })
 
     this.bucket.addToResourcePolicy(this.policyStatement)
@@ -198,29 +203,29 @@ export class SvelteKit extends Construct {
       handler: this.options.lambdaHandler,
       timeout: Duration.seconds(5),
       memorySize: 256,
-      ...this.options.constructProps.handler,
+      ...this.options.constructProps.handler?.(this),
     })
 
     this.lambdaIntegration = new HttpLambdaIntegration(
       `${id}-lambda-integration`,
       this.handler,
-      this.options.constructProps.lambdaIntegration,
+      this.options.constructProps.lambdaIntegration?.(this),
     )
 
     this.httpApi = new HttpApi(this, `${id}-api`, {
       createDefaultStage: true,
       defaultIntegration: this.lambdaIntegration,
-      ...this.options.constructProps.httpApi,
+      ...this.options.constructProps.httpApi?.(this),
     })
 
     this.s3Origin = new awsCloudfrontOrigins.S3Origin(this.bucket, {
       originAccessIdentity: this.originAccessIdentity,
-      ...this.options.constructProps.s3Origin,
+      ...this.options.constructProps.s3Origin?.(this),
     })
 
     this.apiOrigin = new awsCloudfrontOrigins.HttpOrigin(
       Fn.select(2, Fn.split('/', this.httpApi.url ?? '')),
-      this.options.constructProps.apiOrigin,
+      this.options.constructProps.apiOrigin?.(this),
     )
 
     this.lambdaCachePolicy = new awsCloudfront.CachePolicy(this, `${id}-cache-policy`, {
@@ -232,7 +237,7 @@ export class SvelteKit extends Construct {
       minTtl: Duration.seconds(0),
       maxTtl: Duration.seconds(31536000),
       defaultTtl: Duration.seconds(0),
-      ...this.options.constructProps.cachePolicy,
+      ...this.options.constructProps.cachePolicy?.(this),
     })
 
     this.distribution = new awsCloudfront.Distribution(this, `${id}-cloudfront-distribution`, {
@@ -243,8 +248,10 @@ export class SvelteKit extends Construct {
         cachePolicy: this.lambdaCachePolicy,
         viewerProtocolPolicy: awsCloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
       },
-      ...this.options.constructProps.distribution,
+      ...this.options.constructProps.distribution?.(this),
     })
+
+    const staticBehaviourProps = this.options.constructProps.staticBehaviour?.(this)
 
     this.distribution.addBehavior('_app/*', this.s3Origin, {
       allowedMethods: awsCloudfront.AllowedMethods.ALLOW_ALL,
@@ -252,7 +259,7 @@ export class SvelteKit extends Construct {
       cachePolicy: awsCloudfront.CachePolicy.CACHING_OPTIMIZED,
       originRequestPolicy: awsCloudfront.OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
       viewerProtocolPolicy: awsCloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
-      ...this.options.constructProps.staticBehaviour,
+      ...staticBehaviourProps,
     })
 
     this.distribution.addBehavior('favicon.png', this.s3Origin, {
@@ -260,7 +267,7 @@ export class SvelteKit extends Construct {
       cachedMethods: awsCloudfront.CachedMethods.CACHE_GET_HEAD_OPTIONS,
       cachePolicy: awsCloudfront.CachePolicy.CACHING_OPTIMIZED,
       viewerProtocolPolicy: awsCloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
-      ...this.options.constructProps.staticBehaviour,
+      ...staticBehaviourProps,
     })
 
     this.distribution.addBehavior('robots.txt', this.s3Origin, {
@@ -268,7 +275,7 @@ export class SvelteKit extends Construct {
       cachedMethods: awsCloudfront.CachedMethods.CACHE_GET_HEAD_OPTIONS,
       cachePolicy: awsCloudfront.CachePolicy.CACHING_OPTIMIZED,
       viewerProtocolPolicy: awsCloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
-      ...this.options.constructProps.staticBehaviour,
+      ...staticBehaviourProps,
     })
 
     this.bucketDeployment = new s3Deployment.BucketDeployment(this, `${id}-bucket-deployment`, {
@@ -276,7 +283,7 @@ export class SvelteKit extends Construct {
       destinationBucket: this.bucket,
       distribution: this.distribution,
       distributionPaths: ['/*'],
-      ...this.options.constructProps.bucketDeployment,
+      ...staticBehaviourProps,
     })
   }
 }

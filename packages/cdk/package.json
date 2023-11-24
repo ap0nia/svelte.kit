@@ -43,8 +43,10 @@
   "dependencies": {
     "@aws-cdk/aws-apigatewayv2-alpha": "2.109.0-alpha.0",
     "@aws-cdk/aws-apigatewayv2-integrations-alpha": "2.109.0-alpha.0",
+    "@sveltejs/kit": "^1.27.6",
     "aws-cdk-lib": "^2.109.0",
-    "constructs": "^10.0.0"
+    "constructs": "^10.0.0",
+    "jiti": "^1.21.0"
   },
   "publishConfig": {
     "access": "public"

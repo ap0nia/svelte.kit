@@ -19,17 +19,17 @@ npm install --save-dev @svelte.kit/adapter-aws
 ```
 
 </TabItem>
+<TabItem label="yarn">
+
+```sh
+yarn add --dev @svelte.kit/adapter-aws
+```
+
+</TabItem>
 <TabItem label="pnpm">
 
 ```sh
 pnpm install --save-dev @svelte.kit/adapter-aws
-```
-
-</TabItem>
-<TabItem label="Yarn">
-
-```sh
-yarn add --dev @svelte.kit/adapter-aws
 ```
 
 </TabItem>
@@ -66,17 +66,17 @@ npm run vite build
 ```
 
 </TabItem>
+<TabItem label="yarn">
+
+```sh
+yarn vite build
+```
+
+</TabItem>
 <TabItem label="pnpm">
 
 ```sh
 pnpm run vite build
-```
-
-</TabItem>
-<TabItem label="Yarn">
-
-```sh
-yarn vite build
 ```
 
 </TabItem>
@@ -178,7 +178,7 @@ The Lambda@Edge handler will intercept all equivalent requests to the about page
 `/about`, `/about/index`, `/about/index.html`, and redirect them to `/about.html`.
 
 
-## Configuration Options
+## Configuration
 This adapter accepts the same configuration options as
 [@sveltejs/adapter-node](https://kit.svelte.dev/docs/adapter-node)
 in addition to options specifying the desired folders in the build output.
@@ -193,5 +193,5 @@ The options from adapter-node are also documented here for completeness:
 - polyfill (default: `true`) - Whether to include polyfills for legacy browsers.
 - envPrefix (default: '') - The prefix to use for environment variables.
 
-### Configuration TODO
+### TODO
 It will read from the nearest `svelte.config.js` to make more informed decisions about the build procedure.
