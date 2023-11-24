@@ -172,7 +172,7 @@ export class SvelteKit extends Construct {
     const s3Directory = path.join(this.options.out, this.options.s3Directory)
     const lambdaDirectory = path.join(this.options.out, this.options.lambdaDirectory)
 
-    this.bucket = new s3.Bucket(this, `${id}-bucket`, {
+    this.bucket = new s3.Bucket(this, 'bucket', {
       removalPolicy: RemovalPolicy.DESTROY,
       autoDeleteObjects: true,
       ...this.options.constructProps.bucket?.(this),
@@ -180,7 +180,7 @@ export class SvelteKit extends Construct {
 
     this.originAccessIdentity = new awsCloudfront.OriginAccessIdentity(
       this,
-      `${id}-cloudfront-OAI`,
+      'cloudfront-OAI',
       this.options.constructProps.originAccessIdentity?.(this),
     )
 
@@ -197,7 +197,7 @@ export class SvelteKit extends Construct {
 
     this.bucket.addToResourcePolicy(this.policyStatement)
 
-    this.handler = new lambda.Function(this, `${id}-lambda`, {
+    this.handler = new lambda.Function(this, 'lambda', {
       runtime: lambda.Runtime.NODEJS_18_X,
       code: lambda.Code.fromAsset(lambdaDirectory),
       handler: this.options.lambdaHandler,
@@ -207,12 +207,12 @@ export class SvelteKit extends Construct {
     })
 
     this.lambdaIntegration = new HttpLambdaIntegration(
-      `${id}-lambda-integration`,
+      'lambda-integration',
       this.handler,
       this.options.constructProps.lambdaIntegration?.(this),
     )
 
-    this.httpApi = new HttpApi(this, `${id}-api`, {
+    this.httpApi = new HttpApi(this, 'api', {
       createDefaultStage: true,
       defaultIntegration: this.lambdaIntegration,
       ...this.options.constructProps.httpApi?.(this),
@@ -228,7 +228,7 @@ export class SvelteKit extends Construct {
       this.options.constructProps.apiOrigin?.(this),
     )
 
-    this.lambdaCachePolicy = new awsCloudfront.CachePolicy(this, `${id}-cache-policy`, {
+    this.lambdaCachePolicy = new awsCloudfront.CachePolicy(this, 'cache-policy', {
       headerBehavior: awsCloudfront.CacheHeaderBehavior.none(),
       queryStringBehavior: awsCloudfront.CacheQueryStringBehavior.none(),
       cookieBehavior: awsCloudfront.CacheCookieBehavior.none(),
@@ -240,7 +240,7 @@ export class SvelteKit extends Construct {
       ...this.options.constructProps.cachePolicy?.(this),
     })
 
-    this.distribution = new awsCloudfront.Distribution(this, `${id}-cloudfront-distribution`, {
+    this.distribution = new awsCloudfront.Distribution(this, 'cloudfront-distribution', {
       defaultBehavior: {
         origin: this.apiOrigin,
         allowedMethods: awsCloudfront.AllowedMethods.ALLOW_ALL,
@@ -278,7 +278,7 @@ export class SvelteKit extends Construct {
       ...staticBehaviourProps,
     })
 
-    this.bucketDeployment = new s3Deployment.BucketDeployment(this, `${id}-bucket-deployment`, {
+    this.bucketDeployment = new s3Deployment.BucketDeployment(this, 'bucket-deployment', {
       sources: [s3Deployment.Source.asset(s3Directory)],
       destinationBucket: this.bucket,
       distribution: this.distribution,
