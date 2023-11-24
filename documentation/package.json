@@ -44,5 +44,8 @@
   "engines": {
     "pnpm": "^8.0.0",
     "node": ">=18"
+  },
+  "devDependencies": {
+    "ci-info": "^4.0.0"
   }
 }
