@@ -1,0 +1,196 @@
+---
+title: Introduction
+description: '@svelte.kit generates build outputs for serverless deployment on AWS.'
+---
+
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+import FileTree from '../../../../components/file-tree/index.astro';
+
+
+## Getting Started
+
+Install the adapter by running the following command in your terminal:
+
+<Tabs>
+<TabItem label="npm">
+
+```sh
+npm install --save-dev @svelte.kit/adapter-aws
+```
+
+</TabItem>
+<TabItem label="pnpm">
+
+```sh
+pnpm install --save-dev @svelte.kit/adapter-aws
+```
+
+</TabItem>
+<TabItem label="Yarn">
+
+```sh
+yarn add --dev @svelte.kit/adapter-aws
+```
+
+</TabItem>
+</Tabs>
+
+## Configure SvelteKit.
+
+Add the adapter to your SvelteKit config.
+
+```js
+// svelte.config.js
+import adapter from '@svelte.kit/adapter-aws'
+import { vitePreprocess } from '@sveltejs/kit/vite'
+
+/** @type {import('@sveltejs/kit').Config} */
+export default {
+  preprocess: vitePreprocess(),
+  kit: {
+    adapter: adapter(),
+  },
+}
+```
+
+## Build the Project
+
+Test the adapter by running the appropriate command in your terminal.
+If you have an equivalent build script in your `package.json`, you may run that instead.
+
+<Tabs>
+<TabItem label="npm">
+
+```sh
+npm run vite build
+```
+
+</TabItem>
+<TabItem label="pnpm">
+
+```sh
+pnpm run vite build
+```
+
+</TabItem>
+<TabItem label="Yarn">
+
+```sh
+yarn vite build
+```
+
+</TabItem>
+</Tabs>
+
+
+## Project Structure
+
+After building the project, a new `build` directory will be created in your project root.
+This directory is organized into subdirectories depending on where they should be uploaded to AWS.
+
+This sample project structure is based off the create-svelte's [Sverdle template](https://github.com/sveltejs/kit/tree/master/packages/create-svelte/templates/default).
+Below is an overview of files you can expect to find in a Sverdle project that's been built with `@svelte.kit/adapter-aws`.
+
+<FileTree>
+
+- static/
+  - robots.txt
+  - favicon.ico
+- src/
+  - routes/
+    - +layout.svelte
+    - +page.ts
+    - +page.svelte (pre-rendered)
+    - about/
+      - +page.ts
+      - +page.svelte (pre-rendered)
+    - sverdle/
+      - +page.ts
+      - +page.svelte
+      - how-to-play/
+        - +page.ts
+        - +page.svelte (pre-rendered)
+  - app.html
+  - app.css
+  - app.d.ts
+- build/
+  - lambda/
+    - index.mjs (Lambda handler)
+    - index.html
+    - about.html
+    - sverdle/
+      - how-to-play.html
+  - s3/
+    - robots.txt
+    - favicon.ico
+    - index.html
+    - about.html
+    - sverdle/
+      - how-to-play.html
+    - app/
+      - immutable/
+        - assets/
+        - chunks/
+        - entries/
+        - nodes/
+      - version.json
+  - lambda@edge/
+    - index.mjs (Lambda@Edge handler)
+- svelte.config.js
+- vite.config.ts
+- package.json
+- tsconfig.json
+
+</FileTree>
+
+### Generated Directories
+The build output for `@svelte.kit/adapter-aws` is organized into three directories:
+`build/lambda`, `build/s3`, and `build/lambda@edge`.
+
+### build/lambda
+This directory contains the primary Lambda handler function that runs during SSR and API requrests.
+It's based off [@sveltejs/adapter-node](https://kit.svelte.dev/docs/adapter-node)
+and starts up a [polka web-server](https://github.com/lukeed/polka) with specialized middleware to handle requests.
+
+(TODO/WIP is migrating to [uwebsockets for that blazingly fast performance](https://github.com/uNetworking/uWebSockets.js).
+
+Because it's based off the Node.js adapter which reads and serves files directly from
+the file system, pre-rendered pages are also uploaded with the function.
+
+
+### build/s3
+This directory contains all static assets should be uploaded to S3.
+
+Notably, this includes [SvelteKit's app directory](https://kit.svelte.dev/docs/configuration#appdir),
+which defaults to `_app/`. All static assets are fetched from this path on the built website.
+
+### build/lambda@edge
+This directory contains the Lambda@Edge handler function that runs during CloudFront requests.
+
+The motivation for having a Lambda@Edge handler is to perform redirects intended for pre-rendered
+pages so that it correctly hits the S3 origin. Typically, the `build/s3` directory is
+uploaded to AWS S3, and then served through the CloudFront CDN.
+
+A limitation of this setup is that routes like `/about` can be forwarded to the S3 origin
+but not actually match any files because the file is actually at `/about.html`.
+The Lambda@Edge handler will intercept all equivalent requests to the about page, e.g.
+`/about`, `/about/index`, `/about/index.html`, and redirect them to `/about.html`.
+
+
+## Configuration Options
+This adapter accepts the same configuration options as
+[@sveltejs/adapter-node](https://kit.svelte.dev/docs/adapter-node)
+in addition to options specifying the desired folders in the build output.
+
+- `s3Directory` (default: `s3`) - The directory to upload to S3.
+- `lambdaDirectory` (default: `lambda`) - The directory to upload to Lambda.
+- `lambdaEdgeDirectory` (default: `lambda@edge`) - The directory to upload to Lambda@Edge.
+
+The options from adapter-node are also documented here for completeness:
+- precompress (default: `false`) - Whether to precompress static assets with brotli and gzip.
+- out (default: `build`) - The directory to write the built files to.
+- polyfill (default: `true`) - Whether to include polyfills for legacy browsers.
+- envPrefix (default: '') - The prefix to use for environment variables.
+
+### Configuration TODO
+It will read from the nearest `svelte.config.js` to make more informed decisions about the build procedure.

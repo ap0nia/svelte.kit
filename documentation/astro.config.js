@@ -10,18 +10,9 @@ export default defineConfig({
       },
       sidebar: [
         {
-          label: 'Guides',
-          items: [
-            {
-              label: 'Example Guide',
-              link: '/guides/example/',
-            },
-          ],
-        },
-        {
-          label: 'Reference',
+          label: 'Packages',
           autogenerate: {
-            directory: 'reference',
+            directory: 'packages',
           },
         },
       ],
