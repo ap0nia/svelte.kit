@@ -6,7 +6,7 @@ import starlight from '@astrojs/starlight'
 
 import { repository } from './package.json'
 
-const repositoryName = repository.url.split('/').pop() ?? ''
+// const repositoryName = repository.url.split('/').pop() ?? ''
 
 /**
  * @returns {import('astro/config').AstroUserConfig}
