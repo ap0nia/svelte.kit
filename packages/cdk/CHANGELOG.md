@@ -1,5 +1,11 @@
 # @svelte.kit/cdk
 
+## 0.2.2
+
+### Patch Changes
+
+- f07657e: feat: read non-conflicting static files to set as cloudfront origin
+
 ## 0.2.1
 
 ### Patch Changes
