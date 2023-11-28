@@ -50,6 +50,13 @@ export interface AdapterOptions {
    * @default 'lambda@edge'
    */
   lambdaAtEdgeDirectory?: string
+
+  /**
+   * The directory that will be uploaded to the Lambda Function.
+   *
+   * User can modify the directory before uploading.
+   */
+  lambdaUpload?: (directory: string) => unknown
 }
 
 /**

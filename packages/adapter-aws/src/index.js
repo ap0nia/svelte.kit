@@ -13,8 +13,13 @@ const __dirname = path.dirname(url.fileURLToPath(import.meta.url))
  * @see https://github.com/evanw/esbuild/issues/1921#issuecomment-1491470829
  */
 const js = `\
-import topLevelModule from 'node:module';
+import topLevelModule from "node:module";
+import topLevelUrl from "node:url";
+import topLevelPath from "node:path";
+
 const require = topLevelModule.createRequire(import.meta.url);
+const __filename = topLevelUrl.fileURLToPath(import.meta.url);
+const __dirname = topLevelPath.dirname(__filename);
 `
 
 /**
@@ -33,6 +38,9 @@ const defaultOptions = {
   s3Directory: 's3',
   lambdaDirectory: 'lambda',
   lambdaAtEdgeDirectory: 'lambda@edge',
+  lambdaUpload: () => {
+    // noop
+  },
 }
 
 /**
@@ -188,6 +196,8 @@ function createAdapter(userOptions = {}) {
           },
         ],
       })
+
+      await options.lambdaUpload(lambdaDirectory)
     },
   }
 
