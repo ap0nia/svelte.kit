@@ -1,5 +1,11 @@
 # @svelte.kit/adapter-aws
 
+## 0.2.3
+
+### Patch Changes
+
+- d4ccbdc: feat: allow upload to lambda
+
 ## 0.2.2
 
 ### Patch Changes
