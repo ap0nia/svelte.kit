@@ -14,6 +14,8 @@ import * as s3 from 'aws-cdk-lib/aws-s3'
 import * as s3Deployment from 'aws-cdk-lib/aws-s3-deployment'
 import { Construct } from 'constructs'
 
+import { findStaticFiles as findStaticFiles, loadSvelteKitConfig } from './config'
+
 // import { loadSvelteKitConfig } from './config'
 
 /**
@@ -65,17 +67,17 @@ export type SvelteKitOptions = {
  * Props for all the allocated constructs.
  */
 export type SvelteKitConstructProps = {
-  bucket?: (scope: SvelteKit) => s3.BucketProps
-  originAccessIdentity?: (scope: SvelteKit) => awsCloudfront.OriginAccessIdentityProps
-  policyStatement?: (scope: SvelteKit) => awsIam.PolicyStatementProps
-  handler?: (scope: SvelteKit) => lambda.FunctionProps
-  lambdaIntegration?: (scope: SvelteKit) => HttpLambdaIntegrationProps
-  httpApi?: (scope: SvelteKit) => HttpApi
-  s3Origin?: (scope: SvelteKit) => awsCloudfrontOrigins.S3OriginProps
-  apiOrigin?: (scope: SvelteKit) => awsCloudfrontOrigins.HttpOriginProps
-  cachePolicy?: (scope: SvelteKit) => awsCloudfront.CachePolicyProps
-  distribution?: (scope: SvelteKit) => awsCloudfront.DistributionProps
-  bucketDeployment?: (scope: SvelteKit) => s3Deployment.BucketDeploymentProps
+  bucket?: (scope: SvelteKit) => Partial<s3.BucketProps>
+  originAccessIdentity?: (scope: SvelteKit) => Partial<awsCloudfront.OriginAccessIdentityProps>
+  policyStatement?: (scope: SvelteKit) => Partial<awsIam.PolicyStatementProps>
+  handler?: (scope: SvelteKit) => Partial<lambda.FunctionProps>
+  lambdaIntegration?: (scope: SvelteKit) => Partial<HttpLambdaIntegrationProps>
+  httpApi?: (scope: SvelteKit) => Partial<HttpApi>
+  s3Origin?: (scope: SvelteKit) => Partial<awsCloudfrontOrigins.S3OriginProps>
+  apiOrigin?: (scope: SvelteKit) => Partial<awsCloudfrontOrigins.HttpOriginProps>
+  cachePolicy?: (scope: SvelteKit) => Partial<awsCloudfront.CachePolicyProps>
+  distribution?: (scope: SvelteKit) => Partial<awsCloudfront.DistributionProps>
+  bucketDeployment?: (scope: SvelteKit) => Partial<s3Deployment.BucketDeploymentProps>
 
   /**
    * Props that are provided to all CloudFront behaviors for static assets from S3.
@@ -262,22 +264,6 @@ export class SvelteKit extends Construct {
       ...staticBehaviourProps,
     })
 
-    this.distribution.addBehavior('favicon.png', this.s3Origin, {
-      allowedMethods: awsCloudfront.AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
-      cachedMethods: awsCloudfront.CachedMethods.CACHE_GET_HEAD_OPTIONS,
-      cachePolicy: awsCloudfront.CachePolicy.CACHING_OPTIMIZED,
-      viewerProtocolPolicy: awsCloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
-      ...staticBehaviourProps,
-    })
-
-    this.distribution.addBehavior('robots.txt', this.s3Origin, {
-      allowedMethods: awsCloudfront.AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
-      cachedMethods: awsCloudfront.CachedMethods.CACHE_GET_HEAD_OPTIONS,
-      cachePolicy: awsCloudfront.CachePolicy.CACHING_OPTIMIZED,
-      viewerProtocolPolicy: awsCloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
-      ...staticBehaviourProps,
-    })
-
     this.bucketDeployment = new s3Deployment.BucketDeployment(this, 'bucket-deployment', {
       sources: [s3Deployment.Source.asset(s3Directory)],
       destinationBucket: this.bucket,
@@ -285,5 +271,27 @@ export class SvelteKit extends Construct {
       distributionPaths: ['/*'],
       ...staticBehaviourProps,
     })
+
+    findStaticFiles().forEach((file) => {
+      const pattern = file.isDirectory ? `${file.path}/*` : file.path
+
+      this.distribution.addBehavior(pattern, this.s3Origin, {
+        allowedMethods: awsCloudfront.AllowedMethods.ALLOW_GET_HEAD_OPTIONS,
+        cachedMethods: awsCloudfront.CachedMethods.CACHE_GET_HEAD_OPTIONS,
+        cachePolicy: awsCloudfront.CachePolicy.CACHING_OPTIMIZED,
+        viewerProtocolPolicy: awsCloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+        ...staticBehaviourProps,
+      })
+
+      console.log('static file: ', file, pattern)
+    })
+  }
+
+  /**
+   * TODO: document this.
+   */
+  async init() {
+    const config = await loadSvelteKitConfig()
+    console.log('config loaded: ', config)
   }
 }
