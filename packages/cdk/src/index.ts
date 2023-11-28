@@ -282,8 +282,6 @@ export class SvelteKit extends Construct {
         viewerProtocolPolicy: awsCloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
         ...staticBehaviourProps,
       })
-
-      console.log('static file: ', file, pattern)
     })
   }
 
