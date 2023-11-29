@@ -6,6 +6,9 @@
 .svelte-kit/
 build/
 
+## CDK outputs.
+cdk.out/
+
 
 #####################################################################################
 # Development Environment
