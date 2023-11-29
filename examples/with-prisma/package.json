@@ -1,0 +1,24 @@
+{
+  "name": "@examples/with-prisma",
+  "version": "0.1.0",
+  "description": "with prisma deployment",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "postinstall": "prisma generate && svelte-kit sync",
+    "dev": "vite"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.6.0"
+  },
+  "devDependencies": {
+    "@svelte.kit/adapter-aws": "workspace:^",
+    "@svelte.kit/cdk": "workspace:^",
+    "@sveltejs/kit": "^1.27.6",
+    "prisma": "^5.6.0",
+    "svelte": "5.0.0-next.1",
+    "typescript": "^5.3.2",
+    "typescript-svelte-plugin": "^0.3.36",
+    "vite": "^4.4.2"
+  }
+}
