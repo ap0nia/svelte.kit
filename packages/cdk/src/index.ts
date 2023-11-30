@@ -209,6 +209,8 @@ export class SvelteKit extends Construct {
       runtime: lambda.Runtime.NODEJS_18_X,
       code: lambda.Code.fromAsset(lambdaDirectory),
       handler: this.options.lambdaHandler,
+      timeout: Duration.seconds(15),
+      memorySize: 1024,
       ...this.options.constructProps.handler?.(this),
     })
 
