@@ -142,6 +142,11 @@ export class SvelteKit extends Construct {
   lambdaCachePolicy: awsCloudfront.CachePolicy
 
   /**
+   * The CloudFront function that handles requests to the API.
+   */
+  edgeFunction: awsCloudfront.Function
+
+  /**
    * The CloudFront distribution that serves the website.
    */
   distribution: awsCloudfront.Distribution
@@ -173,6 +178,7 @@ export class SvelteKit extends Construct {
 
     const s3Directory = path.join(this.options.out, this.options.s3Directory)
     const lambdaDirectory = path.join(this.options.out, this.options.lambdaDirectory)
+    const lambdaAtEdgeDirectory = path.join(this.options.out, this.options.lambdaAtEdgeDirectory)
 
     this.bucket = new s3.Bucket(this, 'bucket', {
       removalPolicy: RemovalPolicy.DESTROY,
@@ -242,6 +248,12 @@ export class SvelteKit extends Construct {
       ...this.options.constructProps.cachePolicy?.(this),
     })
 
+    this.edgeFunction = new awsCloudfront.Function(this, 'edge-function', {
+      code: awsCloudfront.FunctionCode.fromFile({
+        filePath: path.join(lambdaAtEdgeDirectory, 'index.mjs'),
+      }),
+    })
+
     this.distribution = new awsCloudfront.Distribution(this, 'cloudfront-distribution', {
       defaultBehavior: {
         origin: this.apiOrigin,
@@ -249,6 +261,12 @@ export class SvelteKit extends Construct {
         cachedMethods: awsCloudfront.CachedMethods.CACHE_GET_HEAD_OPTIONS,
         cachePolicy: this.lambdaCachePolicy,
         viewerProtocolPolicy: awsCloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+        functionAssociations: [
+          {
+            function: this.edgeFunction,
+            eventType: awsCloudfront.FunctionEventType.VIEWER_REQUEST,
+          },
+        ],
       },
       ...this.options.constructProps.distribution?.(this),
     })

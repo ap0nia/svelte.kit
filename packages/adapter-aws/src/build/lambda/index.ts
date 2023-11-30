@@ -83,6 +83,13 @@ export async function handler(
 
   const requestUrl = `https://${internalEvent.headers['host']}${internalEvent.url}`
 
+  console.log(internalEvent)
+  console.log(internalEvent.headers)
+  console.log(internalEvent.url)
+  console.log(event)
+  console.log(event.headers)
+  console.log(context, callback)
+
   const requestInit: RequestInit = {
     method: internalEvent.method,
     headers: internalEvent.headers,

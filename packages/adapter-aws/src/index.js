@@ -129,17 +129,11 @@ function createAdapter(userOptions = {}) {
           `export const prerendered = new Set(${JSON.stringify(builder.prerendered.paths)});\n`,
       )
 
+      // The files being built are located in __this project__,
+      // so `__dirname` is used to resolve the paths starting from this file.
       await esbuild.build({
-        // The files being built are located in __this project__,
-        // so `__dirname` is used to resolve the paths starting from this file.
         entryPoints: {
           [`${options.lambdaDirectory}/index`]: path.join(__dirname, 'build', 'lambda', 'index.js'),
-          [`${options.lambdaAtEdgeDirectory}/index`]: path.join(
-            __dirname,
-            'build',
-            'lambda@edge',
-            'index.js',
-          ),
         },
         bundle: true,
         outExtension: { '.js': '.mjs' },
@@ -185,6 +179,44 @@ function createAdapter(userOptions = {}) {
                     : '',
                 }
               })
+              build.onLoad({ filter: /PRERENDERED/, namespace }, () => {
+                return {
+                  contents: `export const prerenderedMappings = new Map(${JSON.stringify(
+                    prerenderedCandidates,
+                  )});\n`,
+                }
+              })
+            },
+          },
+        ],
+      })
+
+      await esbuild.build({
+        entryPoints: {
+          [`${options.lambdaAtEdgeDirectory}/index`]: path.join(
+            __dirname,
+            'build',
+            'lambda@edge',
+            'index.js',
+          ),
+        },
+        bundle: true,
+        outExtension: { '.js': '.mjs' },
+        format: 'esm',
+        // target: ['es6'],
+        platform: 'node',
+        outdir: options.out,
+        plugins: [
+          {
+            name: 'sveltekit-adapter-node-resolver',
+            setup(build) {
+              build.onResolve({ filter: /PRERENDERED/ }, (args) => {
+                return {
+                  path: args.path,
+                  namespace,
+                }
+              })
+
               build.onLoad({ filter: /PRERENDERED/, namespace }, () => {
                 return {
                   contents: `export const prerenderedMappings = new Map(${JSON.stringify(
