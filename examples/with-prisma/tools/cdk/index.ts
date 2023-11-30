@@ -3,7 +3,7 @@ import { SvelteKit } from '@svelte.kit/cdk'
 import { App, Stack } from 'aws-cdk-lib'
 
 async function main() {
-  const stackName = `sveltekit-adapter-aws-test`
+  const stackName = `with-prisma`
 
   const app = new App({ autoSynth: true })
 
