@@ -1,4 +1,4 @@
-import { Adapter } from '@sveltejs/kit'
+import type { Adapter } from '@sveltejs/kit'
 import './ambient.js'
 
 export interface AdapterOptions {

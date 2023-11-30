@@ -203,7 +203,7 @@ function createAdapter(userOptions = {}) {
         bundle: true,
         outExtension: { '.js': '.mjs' },
         format: 'esm',
-        // target: ['es6'],
+        target: ['es6'],
         platform: 'node',
         outdir: options.out,
         plugins: [

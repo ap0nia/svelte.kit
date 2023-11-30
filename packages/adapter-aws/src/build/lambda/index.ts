@@ -13,9 +13,9 @@ import type {
   Callback,
 } from 'aws-lambda'
 
-import { isBinaryContentType } from '../http/binary-content-types.js'
-import { FORWARDED_HOST_HEADER, PRERENDERED_FILE_HEADERS } from '../http/headers.js'
-import { methodsForPrerenderedFiles } from '../http/methods.js'
+import { isBinaryContentType } from '../../http/binary-content-types'
+import { FORWARDED_HOST_HEADER, PRERENDERED_FILE_HEADERS } from '../../http/headers'
+import { methodsForPrerenderedFiles } from '../../http/methods'
 
 export interface InternalEvent {
   /**
@@ -83,13 +83,6 @@ export async function handler(
 
   const requestUrl = `https://${internalEvent.headers['host']}${internalEvent.url}`
 
-  console.log(internalEvent)
-  console.log(internalEvent.headers)
-  console.log(internalEvent.url)
-  console.log(event)
-  console.log(event.headers)
-  console.log(context, callback)
-
   const requestInit: RequestInit = {
     method: internalEvent.method,
     headers: internalEvent.headers,
@@ -123,73 +116,23 @@ function convertAPIGatewayProxyEventV1ToRequest(event: APIGatewayProxyEvent): In
     method: event.httpMethod,
     path: event.path,
     remoteAddress: event.requestContext.identity.sourceIp,
-  } as InternalEvent
-
-  let url: string
-  let body: Buffer
-  let headers: Record<string, string>
-
-  Object.defineProperties(internalEvent, {
-    url: {
-      enumerable: true,
-      get: () => {
-        url ??= event.path + normalizeAPIGatewayProxyEventQueryParams(event)
-        return url
-      },
-    },
-    body: {
-      enumerable: true,
-      get: () => {
-        body ??= Buffer.from(event.body ?? '', event.isBase64Encoded ? 'base64' : 'utf8')
-        return body
-      },
-    },
-    headers: {
-      enumerable: true,
-      get: () => {
-        headers ??= normalizeAPIGatewayProxyEventHeaders(event)
-        return headers
-      },
-    },
-  })
+    url: event.path + normalizeAPIGatewayProxyEventQueryParams(event),
+    body: Buffer.from(event.body ?? '', event.isBase64Encoded ? 'base64' : 'utf8'),
+    headers: normalizeAPIGatewayProxyEventHeaders(event),
+  }
 
   return internalEvent
 }
 
 function convertAPIGatewayProxyEventV2ToRequest(event: APIGatewayProxyEventV2): InternalEvent {
-  const internalEvent = {
+  const internalEvent: InternalEvent = {
     method: event.requestContext.http.method,
     path: event.rawPath,
     remoteAddress: event.requestContext.http.sourceIp,
-  } as InternalEvent
-
-  let url: string
-  let body: Buffer
-  let headers: Record<string, string>
-
-  Object.defineProperties(internalEvent, {
-    url: {
-      enumerable: true,
-      get: () => {
-        url ??= event.rawPath + (event.rawQueryString ? `?${event.rawQueryString}` : '')
-        return url
-      },
-    },
-    body: {
-      enumerable: true,
-      get: () => {
-        body ??= normalizeAPIGatewayProxyEventV2Body(event)
-        return body
-      },
-    },
-    headers: {
-      enumerable: true,
-      get: () => {
-        headers ??= normalizeAPIGatewayProxyEventHeaders(event)
-        return headers
-      },
-    },
-  })
+    url: event.rawPath + (event.rawQueryString ? `?${event.rawQueryString}` : ''),
+    body: normalizeAPIGatewayProxyEventV2Body(event),
+    headers: normalizeAPIGatewayProxyEventHeaders(event),
+  }
 
   return internalEvent
 }

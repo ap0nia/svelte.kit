@@ -31,12 +31,19 @@
     ".": {
       "types": "./src/index.d.ts",
       "import": "./src/index.js"
+    },
+    "./recipes/*": {
+      "types": "./src/recipes/*.d.ts",
+      "import": "./src/recipes/*.js"
     }
   },
   "typesVersions": {
     "*": {
       ".": [
         "./src/index.d.ts"
+      ],
+      "recipes/*": [
+        "./src/recipes/*.d.ts"
       ]
     }
   },
