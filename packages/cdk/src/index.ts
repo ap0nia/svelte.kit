@@ -209,8 +209,6 @@ export class SvelteKit extends Construct {
       runtime: lambda.Runtime.NODEJS_18_X,
       code: lambda.Code.fromAsset(lambdaDirectory),
       handler: this.options.lambdaHandler,
-      timeout: Duration.seconds(5),
-      memorySize: 256,
       ...this.options.constructProps.handler?.(this),
     })
 
@@ -250,17 +248,18 @@ export class SvelteKit extends Construct {
 
     this.edgeFunction = new awsCloudfront.Function(this, 'edge-function', {
       code: awsCloudfront.FunctionCode.fromFile({
-        filePath: path.join(lambdaAtEdgeDirectory, 'index.mjs'),
+        filePath: path.join(lambdaAtEdgeDirectory, 'index.js'),
       }),
     })
 
     this.distribution = new awsCloudfront.Distribution(this, 'cloudfront-distribution', {
       defaultBehavior: {
         origin: this.apiOrigin,
+        viewerProtocolPolicy: awsCloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
         allowedMethods: awsCloudfront.AllowedMethods.ALLOW_ALL,
         cachedMethods: awsCloudfront.CachedMethods.CACHE_GET_HEAD_OPTIONS,
         cachePolicy: this.lambdaCachePolicy,
-        viewerProtocolPolicy: awsCloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+        originRequestPolicy: awsCloudfront.OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
         functionAssociations: [
           {
             function: this.edgeFunction,

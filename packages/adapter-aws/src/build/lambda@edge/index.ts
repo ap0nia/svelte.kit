@@ -22,5 +22,5 @@ function handler(event: CloudFrontFunctionsEvent) {
   return request
 }
 
-const module: any = {}
+var module: any = {}
 module.exports = { handler }
