@@ -11,7 +11,7 @@ export default function uploadPrisma(options) {
     const engineFileName = path.basename(options.engine)
     const schemaFileName = 'schema.prisma'
 
-    fs.copyFileSync(path.join(options.schema), path.join(directory, engineFileName))
+    fs.copyFileSync(path.join(options.engine), path.join(directory, engineFileName))
     fs.chmodSync(path.join(directory, engineFileName), 0o755)
     fs.copyFileSync(options.schema, path.join(directory, schemaFileName))
   }
