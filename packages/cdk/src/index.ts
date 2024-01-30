@@ -262,12 +262,12 @@ export class SvelteKit extends Construct {
         cachedMethods: awsCloudfront.CachedMethods.CACHE_GET_HEAD_OPTIONS,
         cachePolicy: this.lambdaCachePolicy,
         originRequestPolicy: awsCloudfront.OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
-        functionAssociations: [
-          {
-            function: this.edgeFunction,
-            eventType: awsCloudfront.FunctionEventType.VIEWER_REQUEST,
-          },
-        ],
+        // functionAssociations: [
+        //   {
+        //     function: this.edgeFunction,
+        //     eventType: awsCloudfront.FunctionEventType.VIEWER_REQUEST,
+        //   },
+        // ],
       },
       ...this.options.constructProps.distribution?.(this),
     })
