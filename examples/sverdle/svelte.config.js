@@ -33,14 +33,14 @@ const config = {
 	kit: {
 		adapter: adapter({
 			lambdaUpload: (directory) => {
-				fs.copyFileSync(
-					path.join(prismaClientDirectory, prismaQueryEngineFile),
-					path.join(directory, prismaQueryEngineFile)
-				);
+				// fs.copyFileSync(
+				// 	path.join(prismaClientDirectory, prismaQueryEngineFile),
+				// 	path.join(directory, prismaQueryEngineFile)
+				// );
 
-				fs.chmodSync(path.join(directory, prismaQueryEngineFile), 0o755);
+				// fs.chmodSync(path.join(directory, prismaQueryEngineFile), 0o755);
 
-				fs.copyFileSync(prismaSchema, path.join(directory, prismaSchemaFile));
+				// fs.copyFileSync(prismaSchema, path.join(directory, prismaSchemaFile));
 			}
 		})
 	}
