@@ -1,5 +1,11 @@
 # @svelte.kit/adapter-node
 
+## 0.2.4
+
+### Patch Changes
+
+- 5ca7ad9: fix: cdk origin request policy hopefully
+
 ## 0.2.3
 
 ### Patch Changes

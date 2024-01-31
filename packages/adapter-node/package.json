@@ -1,6 +1,6 @@
 {
   "name": "@svelte.kit/adapter-node",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "sveltekit adapter node",
   "private": true,
   "license": "MIT",
