@@ -257,11 +257,11 @@ export class SvelteKit extends Construct {
     this.distribution = new awsCloudfront.Distribution(this, 'cloudfront-distribution', {
       defaultBehavior: {
         origin: this.apiOrigin,
-        viewerProtocolPolicy: awsCloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
         allowedMethods: awsCloudfront.AllowedMethods.ALLOW_ALL,
         cachedMethods: awsCloudfront.CachedMethods.CACHE_GET_HEAD_OPTIONS,
         cachePolicy: this.lambdaCachePolicy,
         originRequestPolicy: awsCloudfront.OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
+        viewerProtocolPolicy: awsCloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
         // functionAssociations: [
         //   {
         //     function: this.edgeFunction,
