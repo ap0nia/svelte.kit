@@ -1,5 +1,11 @@
 # @svelte.kit/cdk
 
+## 0.3.0
+
+### Minor Changes
+
+- 0a3eeef: feat: updated aws adapter and cdk deployment
+
 ## 0.2.4
 
 ### Patch Changes
