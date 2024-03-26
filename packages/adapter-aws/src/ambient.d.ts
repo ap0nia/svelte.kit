@@ -8,23 +8,12 @@ declare module 'MANIFEST' {
   export const manifest: SSRManifest
 
   export const prerendered: Set<string>
+
+  export const base: string
 }
 
 declare module 'SERVER' {
   export { Server } from '@sveltejs/kit'
-}
-
-declare module 'PRERENDERED' {
-  /**
-   * Maps all possible route variants to the corresponding file.
-   * @example
-   * "" -> "index.html"
-   * "/" -> "index.html"
-   * "sverdle/how-to-play" -> "sverdle/how-to-play.html"
-   * "/sverdle/how-to-play" -> "sverdle/how-to-play.html"
-   * "/sverdle/how-to-play/" -> "sverdle/how-to-play.html"
-   */
-  export const prerenderedMappings: Map<string, string>
 }
 
 interface ImportMeta {
@@ -46,20 +35,4 @@ declare namespace App {
      */
     callback: import('aws-lambda').Callback
   }
-}
-
-declare module 'net' {
-  interface Socket {
-    socket: Omit<Socket, 'socket'>
-  }
-}
-
-declare module 'http' {
-  interface IncomingMessage {
-    info: import('node:net').Socket
-  }
-}
-
-interface RequestInit {
-  duplex?: string
 }

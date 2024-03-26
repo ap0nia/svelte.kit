@@ -16,8 +16,6 @@ import { Construct } from 'constructs'
 
 import { findStaticFiles as findStaticFiles, loadSvelteKitConfig } from './config'
 
-// import { loadSvelteKitConfig } from './config'
-
 /**
  * Configure the deployed infrastructure.
  */
@@ -67,22 +65,46 @@ export type SvelteKitOptions = {
  * Props for all the allocated constructs.
  */
 export type SvelteKitConstructProps = {
-  bucket?: (scope: SvelteKit) => Partial<s3.BucketProps>
-  originAccessIdentity?: (scope: SvelteKit) => Partial<awsCloudfront.OriginAccessIdentityProps>
-  policyStatement?: (scope: SvelteKit) => Partial<awsIam.PolicyStatementProps>
-  handler?: (scope: SvelteKit) => Partial<lambda.FunctionProps>
-  lambdaIntegration?: (scope: SvelteKit) => Partial<HttpLambdaIntegrationProps>
-  httpApi?: (scope: SvelteKit) => Partial<HttpApi>
-  s3Origin?: (scope: SvelteKit) => Partial<awsCloudfrontOrigins.S3OriginProps>
-  apiOrigin?: (scope: SvelteKit) => Partial<awsCloudfrontOrigins.HttpOriginProps>
-  cachePolicy?: (scope: SvelteKit) => Partial<awsCloudfront.CachePolicyProps>
-  distribution?: (scope: SvelteKit) => Partial<awsCloudfront.DistributionProps>
-  bucketDeployment?: (scope: SvelteKit) => Partial<s3Deployment.BucketDeploymentProps>
+  bucket?: FunctionOrValue<(scope: SvelteKit) => Partial<s3.BucketProps> | Nullish>
+
+  originAccessIdentity?: FunctionOrValue<
+    (scope: SvelteKit) => Partial<awsCloudfront.OriginAccessIdentityProps> | Nullish
+  >
+
+  policyStatement?: (scope: SvelteKit) => Partial<awsIam.PolicyStatementProps> | Nullish
+
+  handler?: FunctionOrValue<(scope: SvelteKit) => Partial<lambda.FunctionProps> | Nullish>
+
+  lambdaIntegration?: FunctionOrValue<
+    (scope: SvelteKit) => Partial<HttpLambdaIntegrationProps> | Nullish
+  >
+
+  httpApi?: FunctionOrValue<(scope: SvelteKit) => Partial<HttpApi> | Nullish>
+
+  s3Origin?: FunctionOrValue<
+    (scope: SvelteKit) => Partial<awsCloudfrontOrigins.S3OriginProps> | Nullish
+  >
+
+  apiOrigin?: FunctionOrValue<
+    (scope: SvelteKit) => Partial<awsCloudfrontOrigins.HttpOriginProps> | Nullish
+  >
+
+  cachePolicy?: FunctionOrValue<
+    (scope: SvelteKit) => Partial<awsCloudfront.CachePolicyProps> | Nullish
+  >
+
+  distribution?: FunctionOrValue<
+    (scope: SvelteKit) => Partial<awsCloudfront.DistributionProps> | Nullish
+  >
+
+  bucketDeployment?: FunctionOrValue<
+    (scope: SvelteKit) => Partial<s3Deployment.BucketDeploymentProps> | Nullish
+  >
 
   /**
    * Props that are provided to all CloudFront behaviors for static assets from S3.
    */
-  staticBehaviour?: (scope: SvelteKit) => awsCloudfront.BehaviorOptions
+  staticBehaviour?: FunctionOrValue<(scope: SvelteKit) => awsCloudfront.BehaviorOptions | Nullish>
 }
 
 /**
@@ -142,11 +164,6 @@ export class SvelteKit extends Construct {
   lambdaCachePolicy: awsCloudfront.CachePolicy
 
   /**
-   * The CloudFront function that handles requests to the API.
-   */
-  edgeFunction: awsCloudfront.Function
-
-  /**
    * The CloudFront distribution that serves the website.
    */
   distribution: awsCloudfront.Distribution
@@ -173,23 +190,19 @@ export class SvelteKit extends Construct {
       constructProps: options.constructProps ?? {},
     }
 
-    // TODO: successfully read the SvelteKit config file
-    // const svelteKitConfig = loadSvelteKitConfig()
-
     const s3Directory = path.join(this.options.out, this.options.s3Directory)
     const lambdaDirectory = path.join(this.options.out, this.options.lambdaDirectory)
-    const lambdaAtEdgeDirectory = path.join(this.options.out, this.options.lambdaAtEdgeDirectory)
 
     this.bucket = new s3.Bucket(this, 'bucket', {
       removalPolicy: RemovalPolicy.DESTROY,
       autoDeleteObjects: true,
-      ...this.options.constructProps.bucket?.(this),
+      ...invokeFunctionOrValue(this.options.constructProps.bucket, this),
     })
 
     this.originAccessIdentity = new awsCloudfront.OriginAccessIdentity(
       this,
       'cloudfront-OAI',
-      this.options.constructProps.originAccessIdentity?.(this),
+      invokeFunctionOrValue(this.options.constructProps.originAccessIdentity, this),
     )
 
     this.policyStatement = new awsIam.PolicyStatement({
@@ -211,29 +224,29 @@ export class SvelteKit extends Construct {
       handler: this.options.lambdaHandler,
       timeout: Duration.seconds(15),
       memorySize: 1024,
-      ...this.options.constructProps.handler?.(this),
+      ...invokeFunctionOrValue(this.options.constructProps.handler, this),
     })
 
     this.lambdaIntegration = new HttpLambdaIntegration(
       'lambda-integration',
       this.handler,
-      this.options.constructProps.lambdaIntegration?.(this),
+      invokeFunctionOrValue(this.options.constructProps.lambdaIntegration, this),
     )
 
     this.httpApi = new HttpApi(this, 'api', {
       createDefaultStage: true,
       defaultIntegration: this.lambdaIntegration,
-      ...this.options.constructProps.httpApi?.(this),
+      ...invokeFunctionOrValue(this.options.constructProps.httpApi, this),
     })
 
     this.s3Origin = new awsCloudfrontOrigins.S3Origin(this.bucket, {
       originAccessIdentity: this.originAccessIdentity,
-      ...this.options.constructProps.s3Origin?.(this),
+      ...invokeFunctionOrValue(this.options.constructProps.s3Origin, this),
     })
 
     this.apiOrigin = new awsCloudfrontOrigins.HttpOrigin(
       Fn.select(2, Fn.split('/', this.httpApi.url ?? '')),
-      this.options.constructProps.apiOrigin?.(this),
+      invokeFunctionOrValue(this.options.constructProps.apiOrigin, this),
     )
 
     this.lambdaCachePolicy = new awsCloudfront.CachePolicy(this, 'cache-policy', {
@@ -245,13 +258,7 @@ export class SvelteKit extends Construct {
       minTtl: Duration.seconds(0),
       maxTtl: Duration.seconds(31536000),
       defaultTtl: Duration.seconds(0),
-      ...this.options.constructProps.cachePolicy?.(this),
-    })
-
-    this.edgeFunction = new awsCloudfront.Function(this, 'edge-function', {
-      code: awsCloudfront.FunctionCode.fromFile({
-        filePath: path.join(lambdaAtEdgeDirectory, 'index.js'),
-      }),
+      ...invokeFunctionOrValue(this.options.constructProps.cachePolicy, this),
     })
 
     this.distribution = new awsCloudfront.Distribution(this, 'cloudfront-distribution', {
@@ -262,17 +269,14 @@ export class SvelteKit extends Construct {
         cachePolicy: this.lambdaCachePolicy,
         originRequestPolicy: awsCloudfront.OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
         viewerProtocolPolicy: awsCloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
-        // functionAssociations: [
-        //   {
-        //     function: this.edgeFunction,
-        //     eventType: awsCloudfront.FunctionEventType.VIEWER_REQUEST,
-        //   },
-        // ],
       },
-      ...this.options.constructProps.distribution?.(this),
+      ...invokeFunctionOrValue(this.options.constructProps.distribution, this),
     })
 
-    const staticBehaviourProps = this.options.constructProps.staticBehaviour?.(this)
+    const staticBehaviourProps = invokeFunctionOrValue(
+      this.options.constructProps.staticBehaviour,
+      this,
+    )
 
     this.distribution.addBehavior('_app/*', this.s3Origin, {
       allowedMethods: awsCloudfront.AllowedMethods.ALLOW_ALL,
@@ -305,10 +309,27 @@ export class SvelteKit extends Construct {
   }
 
   /**
-   * TODO: document this.
    */
   async init() {
     const config = await loadSvelteKitConfig()
     console.log('config loaded: ', config)
   }
+}
+
+export type Nullish = null | undefined | void
+
+export type FunctionOrValue<T extends (...args: any) => any> = T | ReturnType<T>
+
+export function invokeFunctionOrValue<T extends (...args: any) => any>(
+  fn?: FunctionOrValue<T> | Nullish,
+  ...args: Parameters<T>
+): ReturnType<T> {
+  if (isFunction(fn)) {
+    fn(Array.isArray(args) ? args : args)
+  }
+  return isFunction(fn) ? fn(...(args as any)) : fn
+}
+
+export function isFunction(value: unknown): value is (...args: any) => any {
+  return typeof value === 'function'
 }

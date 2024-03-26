@@ -17,6 +17,7 @@
   "devDependencies": {
     "@svelte.kit/adapter-aws": "workspace:^",
     "@svelte.kit/cdk": "workspace:^",
+    "@sveltejs/adapter-node": "^5.0.1",
     "@sveltejs/kit": "^1.27.6",
     "aws-cdk": "^2.109.0",
     "aws-cdk-lib": "^2.111.0",

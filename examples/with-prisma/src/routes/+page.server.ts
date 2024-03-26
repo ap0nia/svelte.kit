@@ -1,11 +1,6 @@
-import type { PageServerLoad, Actions } from './$types'
+import type { Actions } from './$types'
 
 import { prisma } from '$lib/server/db'
-
-export const load: PageServerLoad = async () => {
-  const users = await prisma.user.findMany()
-  return { users }
-}
 
 export const actions: Actions = {
   counter: async (event) => {

@@ -1,8 +1,6 @@
 import 'SHIMS'
-import { readFileSync } from 'node:fs'
 
 import { manifest } from 'MANIFEST'
-import { prerenderedMappings } from 'PRERENDERED'
 import { Server } from 'SERVER'
 import type {
   APIGatewayProxyResult,
@@ -14,7 +12,7 @@ import type {
 } from 'aws-lambda'
 
 import { isBinaryContentType } from '../../http/binary-content-types'
-import { FORWARDED_HOST_HEADER, PRERENDERED_FILE_HEADERS } from '../../http/headers'
+import { FORWARDED_HOST_HEADER } from '../../http/headers'
 import { methodsForPrerenderedFiles } from '../../http/methods'
 
 export interface InternalEvent {
@@ -60,21 +58,6 @@ export async function handler(
   const internalEvent = isAPIGatewayProxyEventV2(event)
     ? convertAPIGatewayProxyEventV2ToRequest(event)
     : convertAPIGatewayProxyEventV1ToRequest(event)
-
-  const prerenderedFile = prerenderedMappings.get(internalEvent.path)
-
-  /**
-   * Pre-rendered routes are handled by both Lambda and Lambda@Edge.
-   * Lambda will serve the actual file contents; Lambda@Edge will re-write the URL to try to hit cache.
-   */
-  if (prerenderedFile) {
-    return {
-      statusCode: 200,
-      headers: PRERENDERED_FILE_HEADERS,
-      body: readFileSync(prerenderedFile, 'utf8'),
-      isBase64Encoded: false,
-    }
-  }
 
   // Set correct host header
   if (internalEvent.headers[FORWARDED_HOST_HEADER]) {

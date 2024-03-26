@@ -1,5 +1,5 @@
 <script lang="ts">
-  export let data
+  // export let data
 </script>
 
 <div>
@@ -21,6 +21,7 @@
     <h3>Users</h3>
 
     <div style="display: flex; gap: 4px; border: 2px solid red;">
+      <!--
       {#each data.users as user}
         <div style="border: 2px solid blue;">
           <p>
@@ -30,6 +31,7 @@
           <p>{user.count}</p>
         </div>
       {/each}
+      -->
     </div>
   </div>
 </div>

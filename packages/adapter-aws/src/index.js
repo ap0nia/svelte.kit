@@ -6,7 +6,42 @@ import url from 'node:url'
 
 import esbuild from 'esbuild'
 
+/**
+ * Absolute path to this file.
+ * Used for resolving relative paths to template files in this project.
+ */
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url))
+
+/**
+ * @type {Required<import('.').AdapterOptions>}
+ */
+const defaultOptions = {
+  precompress: true,
+  out: 'build',
+  polyfill: true,
+  envPrefix: '',
+  s3Directory: 's3',
+  lambdaDirectory: 'lambda',
+  lambdaAtEdgeDirectory: 'lambda@edge',
+  lambdaUpload: () => {
+    // noop
+  },
+}
+
+/**
+ * Name of adapter.
+ */
+const name = 'adapter-aws'
+
+/**
+ * Custom namespace for resolving virtual files.
+ */
+const namespace = '\0sveltekit-virtual'
+
+/**
+ * Relative location of the lambda handler template file from this file.
+ */
+const localTemplateLambdaFunction = path.join('build', 'lambda', 'index.js')
 
 /**
  * Custom banner to support `dynamic require of ...`
@@ -23,27 +58,6 @@ const __dirname = topLevelPath.dirname(__filename);
 `
 
 /**
- * Custom namespace for resolving virtual files.
- */
-const namespace = 'sveltekit-virtual'
-
-/**
- * @type {Required<import('.').AdapterOptions>}
- */
-const defaultOptions = {
-  precompress: false,
-  out: 'build',
-  polyfill: true,
-  envPrefix: '',
-  s3Directory: 's3',
-  lambdaDirectory: 'lambda',
-  lambdaAtEdgeDirectory: 'lambda@edge',
-  lambdaUpload: () => {
-    // noop
-  },
-}
-
-/**
  * @type {import('.').default}
  */
 function createAdapter(userOptions = {}) {
@@ -55,95 +69,89 @@ function createAdapter(userOptions = {}) {
   const adapter = {
     ...options,
 
-    name: '@ap0nia/sveltekit-aws',
+    name,
 
     /**
      * @param {import('@sveltejs/kit').Builder} builder
      */
     async adapt(builder) {
       /**
-       * Temporary directory is created in the default SvelteKit outputs directory.
-       *
-       * @example '.svelte-kit/output/server/adapter-node'
+       * Out directory.
        */
-      const temporaryDirectory = path.join(builder.getServerDirectory(), 'sveltekit-adapter-lambda')
+      const outdir = path.resolve(options.out)
 
       /**
-       * Some SvelteKit thing that determines internal routing.
+       * Upload static assets to S3.
        */
-      const manifest = `${temporaryDirectory}/manifest.js`
+      const s3Directory = path.join(outdir, options.s3Directory, builder.config.kit.paths.base)
 
       /**
-       * The built SvelteKit server.
+       * Lambda directory.
        */
-      const server = `${temporaryDirectory}/index.js`
+      const lambdaDirectory = path.join(outdir, options.lambdaDirectory)
 
       /**
-       * Includes:
-       * - Components pre-rendered as HTML files.
-       * - JS files referenced by the pre-rendered HTML files.
-       *
-       * @example 'build/s3'
+       * Generated contents from SvelteKit go into a nested directory.
        */
-      const s3Directory = path.join(options.out, options.s3Directory, builder.config.kit.paths.base)
+      const serverDirectory = path.join(lambdaDirectory, 'server')
 
       /**
-       * Files needed to handle lambda events.
-       *
-       * @example 'build/lambda'
+       * Write the manifest to the root of the SvelteKit server directory.
        */
-      const lambdaDirectory = path.join(options.out, options.lambdaDirectory)
+      const manifest = path.join(serverDirectory, 'manifest.js')
 
-      builder.log.minor(`Cleaning ${options.out} and ${temporaryDirectory}`)
+      /**
+       * Default location of generated SvelteKit server entrypoint.
+       */
+      const server = path.join(serverDirectory, 'index.js')
+
+      /**
+       * Location of the template file to use for the Lambda function.
+       */
+      const templateLambdaFunction = path.join(__dirname, localTemplateLambdaFunction)
+
+      /**
+       * Lambda handler.
+       */
+      const lambdaFunction = path.join(lambdaDirectory, 'index')
+
+      /**
+       * package.json to add to Lambda directory.
+       */
+      const lambdaPackageJson = path.join(lambdaDirectory, 'package.json')
 
       builder.rimraf(options.out)
       builder.mkdirp(options.out)
 
-      builder.rimraf(temporaryDirectory)
-      builder.mkdirp(temporaryDirectory)
-
-      builder.log.minor('Copying assets')
-
       builder.writeClient(s3Directory)
 
-      const prerenderedFiles = builder.writePrerendered(lambdaDirectory)
-
-      // Also copy the prerendered (static) files to the S3 directory.
-      builder.writePrerendered(s3Directory)
-
       if (options.precompress) {
-        builder.log.minor('Compressing assets')
         await builder.compress(s3Directory)
       }
 
-      builder.log.minor('Building server')
+      builder.writeServer(serverDirectory)
 
-      builder.writeServer(temporaryDirectory)
-
-      const prerenderedCandidates = createPrerenderedCandidates(prerenderedFiles)
-
-      // Dynamically create a manifest in the temporary directory.
       fs.writeFileSync(
         manifest,
-        `export const manifest = ${builder.generateManifest({ relativePath: './' })};\n\n` +
-          `export const prerendered = new Set(${JSON.stringify(builder.prerendered.paths)});\n`,
+        [
+          `export const manifest = ${builder.generateManifest({ relativePath: './' })};`,
+          `export const prerendered = new Set(${JSON.stringify(builder.prerendered.paths)});`,
+          `export const base = ${JSON.stringify(builder.config.kit.paths.base)};`,
+        ].join('\n'),
       )
 
-      // The files being built are located in __this project__,
-      // so `__dirname` is used to resolve the paths starting from this file.
       await esbuild.build({
         entryPoints: {
-          [`${options.lambdaDirectory}/index`]: path.join(__dirname, 'build', 'lambda', 'index.js'),
+          [lambdaFunction]: templateLambdaFunction,
         },
         bundle: true,
-        outExtension: { '.js': '.mjs' },
         format: 'esm',
         platform: 'node',
-        outdir: options.out,
+        outdir,
         banner: { js },
         plugins: [
           {
-            name: 'sveltekit-adapter-node-resolver',
+            name: `${name}-resolver`,
             setup(build) {
               build.onResolve({ filter: /SERVER/ }, () => {
                 return {
@@ -164,118 +172,32 @@ function createAdapter(userOptions = {}) {
                 }
               })
 
-              build.onResolve({ filter: /PRERENDERED/ }, (args) => {
-                return {
-                  path: args.path,
-                  namespace,
-                }
-              })
-
               build.onLoad({ filter: /SHIMS/, namespace }, () => {
                 return {
                   resolveDir: 'node_modules',
                   contents: options.polyfill
-                    ? `import { installPolyfills } from '@sveltejs/kit/node/polyfills'; installPolyfills();`
+                    ? `import { installPolyfills } from '@sveltejs/kit/node/polyfills';\n\ninstallPolyfills();`
                     : '',
                 }
               })
-              build.onLoad({ filter: /PRERENDERED/, namespace }, () => {
-                return {
-                  contents: `export const prerenderedMappings = new Map(${JSON.stringify(
-                    prerenderedCandidates,
-                  )});\n`,
-                }
-              })
             },
           },
         ],
       })
 
-      await esbuild.build({
-        entryPoints: {
-          [`${options.lambdaAtEdgeDirectory}/index`]: path.join(
-            __dirname,
-            'build',
-            'lambda@edge',
-            'index.js',
-          ),
-        },
-        bundle: true,
-        format: 'cjs',
-        target: ['es6'],
-        platform: 'node',
-        outdir: options.out,
-        plugins: [
-          {
-            name: 'sveltekit-adapter-node-resolver',
-            setup(build) {
-              build.onResolve({ filter: /PRERENDERED/ }, (args) => {
-                return {
-                  path: args.path,
-                  namespace,
-                }
-              })
+      /**
+       * Custom `package.json` to enforce ESM in Lambda.
+       */
+      fs.writeFileSync(lambdaPackageJson, JSON.stringify({ type: 'module' }))
 
-              build.onLoad({ filter: /PRERENDERED/, namespace }, () => {
-                return {
-                  contents: `export const prerenderedMappings = new Map(${JSON.stringify(
-                    prerenderedCandidates,
-                  )});\n`,
-                }
-              })
-            },
-          },
-        ],
-      })
-
+      /**
+       * User can perform any post-processing here, e.g. modify the Lambda directory.
+       */
       await options.lambdaUpload(lambdaDirectory)
     },
   }
 
   return adapter
-}
-
-/**
- * Create all the possible mappings of paths to prerendered files.
- * This makes it easy to convert paths to files during Lambda events.
- *
- * @example /sverdle/how-to-play -> /sverdle/how-to-play.html
- *
- * @param {string[]} prerenderedFiles
- * @returns {string[][]}
- */
-function createPrerenderedCandidates(prerenderedFiles) {
-  /**
-   * Prerendered paths
-   * @example /sverdle/how-to-play
-   */
-  const prerenderedCandidates = prerenderedFiles.flatMap((file) => {
-    const htmlFileNoExtension = file.replace(/\.html$/, '')
-
-    const candidates = [
-      [file, file],
-      [`/${file}`, file],
-      [htmlFileNoExtension, file],
-      [`/${htmlFileNoExtension}`, file],
-    ]
-
-    if (file.endsWith('.html')) {
-      candidates.push(
-        [file.replace(/\/index\.html$/, ''), file],
-        [`${htmlFileNoExtension}/index`, file],
-        [`${htmlFileNoExtension}/index.html`, file],
-        [`/${htmlFileNoExtension}/index.html`, file],
-      )
-    }
-
-    if (file === 'index.html') {
-      candidates.push(['/', file], ['', file])
-    }
-
-    return candidates
-  })
-
-  return prerenderedCandidates
 }
 
 export default createAdapter
