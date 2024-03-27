@@ -3,6 +3,13 @@ import './ambient.js'
 
 export interface AdapterOptions {
   /**
+   * Whether to enable AWS Lambda streaming.
+   *
+   * @see https://aws.amazon.com/blogs/compute/introducing-aws-lambda-response-streaming
+   */
+  stream?: boolean
+
+  /**
    * The directory to write the build outputs to.
    *
    * @default 'build'

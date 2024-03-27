@@ -1,6 +1,8 @@
 import 'SHIMS'
 
-import { manifest } from 'MANIFEST'
+import fs from 'node:fs'
+
+import { manifest, prerenderedFileMappings } from 'MANIFEST'
 import { Server } from 'SERVER'
 import type {
   APIGatewayProxyResult,
@@ -12,7 +14,7 @@ import type {
 } from 'aws-lambda'
 
 import { isBinaryContentType } from '../../http/binary-content-types'
-import { FORWARDED_HOST_HEADER } from '../../http/headers'
+import { FORWARDED_HOST_HEADER, PRERENDERED_FILE_HEADERS } from '../../http/headers'
 import { methodsForPrerenderedFiles } from '../../http/methods'
 
 export interface InternalEvent {
@@ -43,7 +45,7 @@ export interface InternalEvent {
 
 const server = new Server(manifest)
 
-const initialized = server.init({ env: process.env as Record<string, string> })
+await server.init({ env: process.env as Record<string, string> })
 
 /**
  * API Gateway / Lambda handler.
@@ -53,13 +55,21 @@ export async function handler(
   context: Context,
   callback: Callback,
 ): Promise<APIGatewayProxyResult | APIGatewayProxyResultV2> {
-  await initialized
-
   const internalEvent = isAPIGatewayProxyEventV2(event)
     ? convertAPIGatewayProxyEventV2ToRequest(event)
     : convertAPIGatewayProxyEventV1ToRequest(event)
 
-  // Set correct host header
+  const prerenderedFile = prerenderedFileMappings.get(internalEvent.path)
+
+  if (prerenderedFile) {
+    return {
+      statusCode: 200,
+      headers: PRERENDERED_FILE_HEADERS,
+      body: fs.readFileSync(prerenderedFile, 'utf8'),
+      isBase64Encoded: false,
+    }
+  }
+
   if (internalEvent.headers[FORWARDED_HOST_HEADER]) {
     internalEvent.headers['host'] = internalEvent.headers[FORWARDED_HOST_HEADER]
   }

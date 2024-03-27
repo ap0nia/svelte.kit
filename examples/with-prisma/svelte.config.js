@@ -21,6 +21,7 @@ const config = {
   preprocess: [vitePreprocess()],
   kit: {
     adapter: adapter({
+      stream: true,
       lambdaUpload: prisma({ engine, schema }),
     }),
   },

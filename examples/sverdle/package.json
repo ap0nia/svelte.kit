@@ -20,6 +20,7 @@
 	},
 	"devDependencies": {
 		"@fontsource/fira-mono": "^4.5.10",
+		"@jill64/sveltekit-adapter-aws": "^1.3.18",
 		"@neoconfetti/svelte": "^1.0.0",
 		"@playwright/test": "^1.28.1",
 		"@svelte.kit/adapter-aws": "workspace:^",

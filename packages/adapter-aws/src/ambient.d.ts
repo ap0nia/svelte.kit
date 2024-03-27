@@ -10,6 +10,8 @@ declare module 'MANIFEST' {
   export const prerendered: Set<string>
 
   export const base: string
+
+  export const prerenderedFileMappings: Map<string, string>
 }
 
 declare module 'SERVER' {

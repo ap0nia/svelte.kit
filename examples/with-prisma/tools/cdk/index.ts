@@ -10,6 +10,7 @@ async function main() {
   const stack = new Stack(app, stackName)
 
   const sveltekit = new SvelteKit(stack, stackName, {
+    stream: true,
     constructProps: {
       handler: () => ({
         environment: {

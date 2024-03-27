@@ -16,6 +16,7 @@ const __dirname = path.dirname(url.fileURLToPath(import.meta.url))
  * @type {Required<import('.').AdapterOptions>}
  */
 const defaultOptions = {
+  stream: false,
   precompress: true,
   out: 'build',
   polyfill: true,
@@ -39,11 +40,6 @@ const name = 'adapter-aws'
 const namespace = '\0sveltekit-virtual'
 
 /**
- * Relative location of the lambda handler template file from this file.
- */
-const localTemplateLambdaFunction = path.join('build', 'lambda', 'index.js')
-
-/**
  * Custom banner to support `dynamic require of ...`
  * @see https://github.com/evanw/esbuild/issues/1921#issuecomment-1491470829
  */
@@ -62,6 +58,15 @@ const __dirname = topLevelPath.dirname(__filename);
  */
 function createAdapter(userOptions = {}) {
   const options = { ...defaultOptions, ...userOptions }
+
+  /**
+   * Relative location of the lambda handler template file from this file.
+   */
+  const localTemplateLambdaFunction = path.join(
+    'build',
+    'lambda',
+    options.stream ? 'streaming-handler.js' : 'index.js',
+  )
 
   /**
    * @type {import('.').ExtendedAdapter}
@@ -123,6 +128,9 @@ function createAdapter(userOptions = {}) {
       builder.rimraf(options.out)
       builder.mkdirp(options.out)
 
+      const prerenderedFiles = builder.writePrerendered(lambdaDirectory)
+      const prerenderedFileMappings = generatePrerenderedFileMappings(prerenderedFiles)
+
       builder.writeClient(s3Directory)
 
       if (options.precompress) {
@@ -137,6 +145,9 @@ function createAdapter(userOptions = {}) {
           `export const manifest = ${builder.generateManifest({ relativePath: './' })};`,
           `export const prerendered = new Set(${JSON.stringify(builder.prerendered.paths)});`,
           `export const base = ${JSON.stringify(builder.config.kit.paths.base)};`,
+          `export const prerenderedFileMappings = new Map(${JSON.stringify(
+            prerenderedFileMappings,
+          )});`,
         ].join('\n'),
       )
 
@@ -198,6 +209,49 @@ function createAdapter(userOptions = {}) {
   }
 
   return adapter
+}
+
+/**
+ * Create all the possible mappings of paths to prerendered files.
+ * This makes it easy to convert paths to files during Lambda events.
+ *
+ * @example /sverdle/how-to-play -> /sverdle/how-to-play.html
+ *
+ * @param {string[]} prerenderedFiles
+ * @returns {string[][]}
+ */
+function generatePrerenderedFileMappings(prerenderedFiles) {
+  /**
+   * Prerendered paths
+   * @example /sverdle/how-to-play
+   */
+  const prerenderedCandidates = prerenderedFiles.flatMap((file) => {
+    const htmlFileNoExtension = file.replace(/\.html$/, '')
+
+    const candidates = [
+      [file, file],
+      [`/${file}`, file],
+      [htmlFileNoExtension, file],
+      [`/${htmlFileNoExtension}`, file],
+    ]
+
+    if (file.endsWith('.html')) {
+      candidates.push(
+        [file.replace(/\/index\.html$/, ''), file],
+        [`${htmlFileNoExtension}/index`, file],
+        [`${htmlFileNoExtension}/index.html`, file],
+        [`/${htmlFileNoExtension}/index.html`, file],
+      )
+    }
+
+    if (file === 'index.html') {
+      candidates.push(['/', file], ['', file])
+    }
+
+    return candidates
+  })
+
+  return prerenderedCandidates
 }
 
 export default createAdapter
