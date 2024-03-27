@@ -79,17 +79,6 @@ export type SvelteKitOptions = {
   constructProps?: SvelteKitConstructProps
 }
 
-const defaultOptions: Required<SvelteKitOptions> = {
-  prerenderedDirectory: 'prerendered',
-  lambdaHandler: 'index.handler',
-  cloudfrontDirectory: 'cloudfront',
-  stream: false,
-  out: 'build',
-  s3Directory: 's3',
-  lambdaDirectory: 'lambda',
-  constructProps: {},
-}
-
 /**
  * Props for all the allocated constructs.
  */
@@ -141,6 +130,20 @@ export type SvelteKitConstructProps = {
 export type SvelteKitOutputs = {
   cloudfrontUrl: CfnOutput
 }
+
+const defaultOptions: Required<SvelteKitOptions> = {
+  domainName: '',
+  prerenderedDirectory: 'prerendered',
+  lambdaHandler: 'index.handler',
+  cloudfrontDirectory: 'cloudfront',
+  stream: false,
+  out: 'build',
+  s3Directory: 's3',
+  lambdaDirectory: 'lambda',
+  constructProps: {},
+}
+
+const placeholder = Object.create(null)
 
 /**
  * AWS CDK construct for deploying built SvelteKit applications.
@@ -224,17 +227,38 @@ export class SvelteKit extends Construct {
    */
   sveltekitConfig: Config
 
-  constructor(scope: Construct, id: string, options: SvelteKitOptions = {}) {
+  constructor(scope: Construct, id: string, options?: SvelteKitOptions) {
     super(scope, id)
+    this.options = { ...defaultOptions, ...options }
+    this.sveltekitConfig = {}
+    this.bucket = placeholder
+    this.originAccessIdentity = placeholder
+    this.policyStatement = placeholder
+    this.handler = placeholder
+    this.lambdaIntegration = placeholder
+    this.lambdaFunctionUrl = placeholder
+    this.httpApi = placeholder
+    this.s3Origin = placeholder
+    this.lambdaOrigin = placeholder
+    this.distribution = placeholder
+    this.bucketDeployment = placeholder
+    this.cloudfrontFunction = placeholder
+    this.outputs = placeholder
+  }
 
-    this.sveltekitConfig ??= {}
+  /**
+   */
+  async initialize(options?: SvelteKitOptions): Promise<void> {
+    this.sveltekitConfig = await loadSvelteKitConfig()
+
+    console.log('config loaded: ', this.sveltekitConfig)
 
     const adapter = this.sveltekitConfig.kit?.adapter
 
     const adapterOptions = adapter?.name === 'adapter-aws' ? adapter : undefined
 
     this.options = {
-      ...defaultOptions,
+      ...this.options,
       ...adapterOptions,
       ...options,
     }
@@ -287,7 +311,7 @@ export class SvelteKit extends Construct {
 
     this.lambdaFunctionUrl = this.handler.addFunctionUrl({
       authType: awsLambda.FunctionUrlAuthType.NONE,
-      invokeMode: options.stream ? awsLambda.InvokeMode.RESPONSE_STREAM : undefined,
+      invokeMode: this.options.stream ? awsLambda.InvokeMode.RESPONSE_STREAM : undefined,
     })
 
     this.httpApi = new HttpApi(this, 'HTTP API', {
@@ -371,13 +395,6 @@ export class SvelteKit extends Construct {
         value: `https://${this.distribution.distributionDomainName}`,
       }),
     }
-  }
-
-  /**
-   */
-  async init() {
-    this.sveltekitConfig = await loadSvelteKitConfig()
-    console.log('config loaded: ', this.sveltekitConfig)
   }
 }
 

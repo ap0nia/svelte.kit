@@ -1,15 +1,17 @@
+/* eslint-disable no-var */
+
 import type { CloudFrontFunctionsEvent } from 'aws-lambda'
 
 import { FORWARDED_HOST_HEADER } from '../../http/headers'
 
-declare let DOMAIN_NAME: string | undefined
+declare var DOMAIN_NAME: string | undefined
 
 export default (
   event: CloudFrontFunctionsEvent,
 ): CloudFrontFunctionsEvent['request'] | CloudFrontFunctionsEvent['response'] => {
-  const request = event.request
+  var request = event.request
 
-  const hostHeader = request.headers['host']
+  var hostHeader = request.headers['host']
 
   if (hostHeader == null) {
     return {
@@ -19,8 +21,8 @@ export default (
     }
   }
 
-  const keys = Object.keys(request.querystring)
-  const values = Object.values(request.querystring)
+  var keys = Object.keys(request.querystring)
+  var values = Object.values(request.querystring)
 
   if (hostHeader.value === DOMAIN_NAME || !DOMAIN_NAME) {
     request.querystring = {}
@@ -30,7 +32,7 @@ export default (
     }
 
     keys.forEach((key, index) => {
-      const value = values[index]
+      var value = values[index]
       if (value != null) {
         request.querystring[encodeURIComponent(key)] = value
       }
@@ -39,11 +41,11 @@ export default (
     return request
   }
 
-  let search = '?'
+  var search = '?'
 
   keys.forEach((key) => {
-    const entry = request.querystring[key]
-    const value = entry?.value
+    var entry = request.querystring[key]
+    var value = entry?.value
 
     if (search !== '?') {
       search = search + '&'

@@ -8,11 +8,9 @@ async function main() {
 
 	const stack = new Stack(app, stackName);
 
-	const sveltekit = new SvelteKit(stack, stackName, {
-		// stream: true
-	});
+	const sveltekit = new SvelteKit(stack, stackName);
 
-	await sveltekit.init();
+	await sveltekit.initialize();
 }
 
 await main();
