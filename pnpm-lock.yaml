@@ -250,6 +250,9 @@ importers:
         specifier: ^0.19.2
         version: 0.19.2
     devDependencies:
+      '@svelte.kit/cdk':
+        specifier: workspace:^
+        version: link:../cdk
       '@types/aws-lambda':
         specifier: ^8.10.119
         version: 8.10.119

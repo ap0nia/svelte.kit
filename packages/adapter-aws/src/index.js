@@ -16,6 +16,10 @@ const __dirname = path.dirname(url.fileURLToPath(import.meta.url))
  * @type {Required<import('.').AdapterOptions>}
  */
 const defaultOptions = {
+  domainName: '',
+  prerenderedDirectory: 'prerendered',
+  lambdaHandler: 'index.handler',
+  cloudfrontDirectory: 'cloudfront',
   stream: false,
   precompress: true,
   out: 'build',
@@ -23,7 +27,6 @@ const defaultOptions = {
   envPrefix: '',
   s3Directory: 's3',
   lambdaDirectory: 'lambda',
-  lambdaAtEdgeDirectory: 'lambda@edge',
   lambdaUpload: () => {
     // noop
   },
@@ -32,7 +35,7 @@ const defaultOptions = {
 /**
  * Name of adapter.
  */
-const name = 'adapter-aws'
+export const name = 'adapter-aws'
 
 /**
  * Custom namespace for resolving virtual files.
@@ -40,33 +43,25 @@ const name = 'adapter-aws'
 const namespace = '\0sveltekit-virtual'
 
 /**
- * Custom banner to support `dynamic require of ...`
- * @see https://github.com/evanw/esbuild/issues/1921#issuecomment-1491470829
+ * The directory at `src/build/lambda`.
  */
-const js = `\
-import topLevelModule from "node:module";
-import topLevelUrl from "node:url";
-import topLevelPath from "node:path";
+const handlerTemplateDirectory = path.join('build', 'lambda')
 
-const require = topLevelModule.createRequire(import.meta.url);
-const __filename = topLevelUrl.fileURLToPath(import.meta.url);
-const __dirname = topLevelPath.dirname(__filename);
-`
+/**
+ * The source file at `src/build/lambda/buffered.ts`
+ */
+const bufferedHandlerTemplate = 'buffered.ts'
+
+/**
+ * The source file at `src/build/lambda/streamed.ts`
+ */
+const streamedHandlerTemplate = 'streamed.ts'
 
 /**
  * @type {import('.').default}
  */
 function createAdapter(userOptions = {}) {
   const options = { ...defaultOptions, ...userOptions }
-
-  /**
-   * Relative location of the lambda handler template file from this file.
-   */
-  const localTemplateLambdaFunction = path.join(
-    'build',
-    'lambda',
-    options.stream ? 'streaming-handler.js' : 'index.js',
-  )
 
   /**
    * @type {import('.').ExtendedAdapter}
@@ -79,57 +74,66 @@ function createAdapter(userOptions = {}) {
     /**
      * @param {import('@sveltejs/kit').Builder} builder
      */
-    async adapt(builder) {
+    adapt: async (builder) => {
       /**
        * Out directory.
        */
       const outdir = path.resolve(options.out)
 
       /**
-       * Upload static assets to S3.
+       * Directory for static assets to upload to AWS S3.
        */
       const s3Directory = path.join(outdir, options.s3Directory, builder.config.kit.paths.base)
 
+      const cloudfrontDirectory = path.join(outdir, options.cloudfrontDirectory)
+
       /**
-       * Lambda directory.
+       * Directory for files to upload to AWS Lambda.
        */
       const lambdaDirectory = path.join(outdir, options.lambdaDirectory)
 
       /**
-       * Generated contents from SvelteKit go into a nested directory.
+       * Directory for SvelteKit server contents in the AWS Lambda function.
        */
       const serverDirectory = path.join(lambdaDirectory, 'server')
 
       /**
-       * Write the manifest to the root of the SvelteKit server directory.
+       * Directory for prerendered files.
+       */
+      const prerenderedDirectory = path.join(lambdaDirectory, options.prerenderedDirectory)
+
+      /**
+       * File with important metadata.
        */
       const manifest = path.join(serverDirectory, 'manifest.js')
 
       /**
-       * Default location of generated SvelteKit server entrypoint.
+       * Entrypoint of SvelteKit server.
+       * AWS Lambda handler imports the server and wraps the handling process.
        */
       const server = path.join(serverDirectory, 'index.js')
 
       /**
-       * Location of the template file to use for the Lambda function.
+       * Location of AWS Lambda handler template.
+       * Compile with the SvelteKit server entrypoint to create a valid AWS Lambda handler.
        */
-      const templateLambdaFunction = path.join(__dirname, localTemplateLambdaFunction)
+      const templateLambdaFunction = path.join(
+        __dirname,
+        handlerTemplateDirectory,
+        options.stream ? streamedHandlerTemplate : bufferedHandlerTemplate,
+      )
 
       /**
-       * Lambda handler.
+       * Location of the compiled AWS Lambda handler.
        */
       const lambdaFunction = path.join(lambdaDirectory, 'index')
 
-      /**
-       * package.json to add to Lambda directory.
-       */
-      const lambdaPackageJson = path.join(lambdaDirectory, 'package.json')
+      const templateCloudfrontFunction = path.join(__dirname, 'build', 'cloudfront', 'index.ts')
+
+      const cloudfrontFunction = path.join(cloudfrontDirectory, 'index')
 
       builder.rimraf(options.out)
       builder.mkdirp(options.out)
-
-      const prerenderedFiles = builder.writePrerendered(lambdaDirectory)
-      const prerenderedFileMappings = generatePrerenderedFileMappings(prerenderedFiles)
 
       builder.writeClient(s3Directory)
 
@@ -138,6 +142,12 @@ function createAdapter(userOptions = {}) {
       }
 
       builder.writeServer(serverDirectory)
+
+      const prerenderedFiles = builder.writePrerendered(prerenderedDirectory)
+      const prerenderedFileMappings = generatePrerenderedFileMappings(
+        prerenderedFiles,
+        options.prerenderedDirectory,
+      )
 
       fs.writeFileSync(
         manifest,
@@ -151,55 +161,79 @@ function createAdapter(userOptions = {}) {
         ].join('\n'),
       )
 
+      /**
+       * @type {esbuild.Plugin}
+       */
+      const resolverPlugin = {
+        name: `${name}-resolver`,
+        setup(build) {
+          build.onResolve({ filter: /SERVER/ }, () => {
+            return {
+              path: server,
+            }
+          })
+
+          build.onResolve({ filter: /MANIFEST/ }, () => {
+            return {
+              path: manifest,
+            }
+          })
+
+          build.onResolve({ filter: /SHIMS/ }, (args) => {
+            return {
+              path: args.path,
+              namespace,
+            }
+          })
+
+          build.onLoad({ filter: /SHIMS/, namespace }, () => {
+            return {
+              resolveDir: 'node_modules',
+              contents: options.polyfill
+                ? `import { installPolyfills } from '@sveltejs/kit/node/polyfills';\n\ninstallPolyfills();`
+                : '',
+            }
+          })
+        },
+      }
+
+      /**
+       * @type {Record<string, string>}
+       */
+      const define = {
+        DOMAIN_NAME: JSON.stringify(options.domainName),
+      }
+
       await esbuild.build({
         entryPoints: {
           [lambdaFunction]: templateLambdaFunction,
         },
         bundle: true,
-        format: 'esm',
         platform: 'node',
         outdir,
-        banner: { js },
-        plugins: [
-          {
-            name: `${name}-resolver`,
-            setup(build) {
-              build.onResolve({ filter: /SERVER/ }, () => {
-                return {
-                  path: server,
-                }
-              })
-
-              build.onResolve({ filter: /MANIFEST/ }, () => {
-                return {
-                  path: manifest,
-                }
-              })
-
-              build.onResolve({ filter: /SHIMS/ }, (args) => {
-                return {
-                  path: args.path,
-                  namespace,
-                }
-              })
-
-              build.onLoad({ filter: /SHIMS/, namespace }, () => {
-                return {
-                  resolveDir: 'node_modules',
-                  contents: options.polyfill
-                    ? `import { installPolyfills } from '@sveltejs/kit/node/polyfills';\n\ninstallPolyfills();`
-                    : '',
-                }
-              })
-            },
-          },
-        ],
+        define,
+        plugins: [resolverPlugin],
       })
 
       /**
-       * Custom `package.json` to enforce ESM in Lambda.
+       * @see https://github.com/jill64/cf2-builder/blob/main/src/cmd.ts
        */
-      fs.writeFileSync(lambdaPackageJson, JSON.stringify({ type: 'module' }))
+      await esbuild.build({
+        entryPoints: {
+          [cloudfrontFunction]: templateCloudfrontFunction,
+        },
+        bundle: true,
+        target: 'es5',
+        platform: 'neutral',
+        format: 'iife',
+        globalName: 'main',
+        outdir,
+        define,
+        plugins: [resolverPlugin],
+        footer: {
+          js: 'function handler (event) { return main.default(event); }',
+        },
+      })
 
       /**
        * User can perform any post-processing here, e.g. modify the Lambda directory.
@@ -212,46 +246,54 @@ function createAdapter(userOptions = {}) {
 }
 
 /**
- * Create all the possible mappings of paths to prerendered files.
- * This makes it easy to convert paths to files during Lambda events.
+ * Generate all possible mappings of paths to prerendered routes.
  *
- * @example /sverdle/how-to-play -> /sverdle/how-to-play.html
+ * This optimizes checks performed by Lambda functions and is compatible
+ * with AWS CloudFront Functions for re-writing origin requests.
  *
- * @param {string[]} prerenderedFiles
- * @returns {string[][]}
+ * @example
+ * Prerendered route: '/sverdle/how-to-play'
+ * Mappings:
+ * [
+ *   ['/sverdle/how-to-play', 'sverdle/how-to-play'],
+ *   ['/sverdle/how-to-play.html', 'sverdle/how-to-play'],
+ *   ['/sverdle/how-to-play/index', 'sverdle/how-to-play'],
+ *   ['/sverdle/how-to-play/index.html', 'sverdle/how-to-play'],
+ *   //...
+ * ],
+ *
+ * @param {string[]} prerenderedFiles An array of prerendered files.
+ * @param {string} prefix A prefix, i.e. sub-directory, for the prerendered files.
+ * @returns {string[][]} An array of tuple mappings.
  */
-function generatePrerenderedFileMappings(prerenderedFiles) {
-  /**
-   * Prerendered paths
-   * @example /sverdle/how-to-play
-   */
-  const prerenderedCandidates = prerenderedFiles.flatMap((file) => {
+function generatePrerenderedFileMappings(prerenderedFiles, prefix = '') {
+  return prerenderedFiles.flatMap((file) => {
     const htmlFileNoExtension = file.replace(/\.html$/, '')
+    const filePath = path.join(prefix, file)
 
     const candidates = [
-      [file, file],
-      [`/${file}`, file],
-      [htmlFileNoExtension, file],
-      [`/${htmlFileNoExtension}`, file],
+      [file, filePath],
+      [`/${file}`, filePath],
+      [htmlFileNoExtension, filePath],
+      [`/${htmlFileNoExtension}`, filePath],
     ]
 
     if (file.endsWith('.html')) {
       candidates.push(
-        [file.replace(/\/index\.html$/, ''), file],
-        [`${htmlFileNoExtension}/index`, file],
-        [`${htmlFileNoExtension}/index.html`, file],
-        [`/${htmlFileNoExtension}/index.html`, file],
+        [file.replace(/\/index\.html$/, ''), filePath],
+        [`${htmlFileNoExtension}/index`, filePath],
+        [`/${htmlFileNoExtension}/index`, filePath],
+        [`${htmlFileNoExtension}/index.html`, filePath],
+        [`/${htmlFileNoExtension}/index.html`, filePath],
       )
     }
 
     if (file === 'index.html') {
-      candidates.push(['/', file], ['', file])
+      candidates.push(['/', filePath], ['', filePath])
     }
 
     return candidates
   })
-
-  return prerenderedCandidates
 }
 
 export default createAdapter

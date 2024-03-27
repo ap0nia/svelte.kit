@@ -1,111 +1,38 @@
-import 'SHIMS'
-
-import fs from 'node:fs'
-
-import { manifest, prerenderedFileMappings } from 'MANIFEST'
-import { Server } from 'SERVER'
 import type {
   APIGatewayProxyResult,
   APIGatewayProxyResultV2,
   APIGatewayProxyEvent,
   APIGatewayProxyEventV2,
-  Context,
-  Callback,
 } from 'aws-lambda'
 
-import { isBinaryContentType } from '../../http/binary-content-types'
-import { FORWARDED_HOST_HEADER, PRERENDERED_FILE_HEADERS } from '../../http/headers'
-import { methodsForPrerenderedFiles } from '../../http/methods'
+import { isBinaryContentType } from '../http/binary-content-types'
+import type { InternalEvent } from '../internal/event'
 
-export interface InternalEvent {
-  /**
-   */
-  readonly method: string
-
-  /**
-   */
-  readonly path: string
-
-  /**
-   */
-  readonly url: string
-
-  /**
-   */
-  readonly body: Buffer
-
-  /**
-   */
-  readonly headers: Record<string, string>
-
-  /**
-   */
-  readonly remoteAddress: string
-}
-
-const server = new Server(manifest)
-
-await server.init({ env: process.env as Record<string, string> })
-
-/**
- * API Gateway / Lambda handler.
- */
-export async function handler(
+export function convertApiGatewayProxyEventToInternalEvent(
   event: APIGatewayProxyEvent | APIGatewayProxyEventV2,
-  context: Context,
-  callback: Callback,
-): Promise<APIGatewayProxyResult | APIGatewayProxyResultV2> {
-  const internalEvent = isAPIGatewayProxyEventV2(event)
+): InternalEvent {
+  return isAPIGatewayProxyEventV2(event)
     ? convertAPIGatewayProxyEventV2ToRequest(event)
     : convertAPIGatewayProxyEventV1ToRequest(event)
+}
 
-  const prerenderedFile = prerenderedFileMappings.get(internalEvent.path)
-
-  if (prerenderedFile) {
-    return {
-      statusCode: 200,
-      headers: PRERENDERED_FILE_HEADERS,
-      body: fs.readFileSync(prerenderedFile, 'utf8'),
-      isBase64Encoded: false,
-    }
-  }
-
-  if (internalEvent.headers[FORWARDED_HOST_HEADER]) {
-    internalEvent.headers['host'] = internalEvent.headers[FORWARDED_HOST_HEADER]
-  }
-
-  const requestUrl = `https://${internalEvent.headers['host']}${internalEvent.url}`
-
-  const requestInit: RequestInit = {
-    method: internalEvent.method,
-    headers: internalEvent.headers,
-    body: methodsForPrerenderedFiles.has(internalEvent.method) ? undefined : internalEvent.body,
-  }
-
-  const request = new Request(requestUrl, requestInit)
-
-  const response = await server.respond(request, {
-    platform: {
-      event,
-      context,
-      callback,
-    },
-    getClientAddress: () => internalEvent.remoteAddress,
-  })
-
+export function convertResponseToAPIGatewayProxyResult(
+  response: Response,
+  event: APIGatewayProxyEvent | APIGatewayProxyEventV2,
+): Promise<APIGatewayProxyResult | APIGatewayProxyResultV2> {
   return isAPIGatewayProxyEventV2(event)
     ? convertResponseToAPIGatewayProxyResultV2(response)
     : convertResponseToAPIGatewayProxyResultV1(response)
 }
 
-function isAPIGatewayProxyEventV2(
+export function isAPIGatewayProxyEventV2(
   event: APIGatewayProxyEvent | APIGatewayProxyEventV2,
 ): event is APIGatewayProxyEventV2 {
   return 'version' in event && event.version === '2.0'
 }
 
-function convertAPIGatewayProxyEventV1ToRequest(event: APIGatewayProxyEvent): InternalEvent {
-  const internalEvent = {
+export function convertAPIGatewayProxyEventV1ToRequest(event: APIGatewayProxyEvent): InternalEvent {
+  return {
     method: event.httpMethod,
     path: event.path,
     remoteAddress: event.requestContext.identity.sourceIp,
@@ -113,12 +40,12 @@ function convertAPIGatewayProxyEventV1ToRequest(event: APIGatewayProxyEvent): In
     body: Buffer.from(event.body ?? '', event.isBase64Encoded ? 'base64' : 'utf8'),
     headers: normalizeAPIGatewayProxyEventHeaders(event),
   }
-
-  return internalEvent
 }
 
-function convertAPIGatewayProxyEventV2ToRequest(event: APIGatewayProxyEventV2): InternalEvent {
-  const internalEvent: InternalEvent = {
+export function convertAPIGatewayProxyEventV2ToRequest(
+  event: APIGatewayProxyEventV2,
+): InternalEvent {
+  return {
     method: event.requestContext.http.method,
     path: event.rawPath,
     remoteAddress: event.requestContext.http.sourceIp,
@@ -126,11 +53,9 @@ function convertAPIGatewayProxyEventV2ToRequest(event: APIGatewayProxyEventV2): 
     body: normalizeAPIGatewayProxyEventV2Body(event),
     headers: normalizeAPIGatewayProxyEventHeaders(event),
   }
-
-  return internalEvent
 }
 
-async function convertResponseToAPIGatewayProxyResultV1(
+export async function convertResponseToAPIGatewayProxyResultV1(
   response: Response,
 ): Promise<APIGatewayProxyResult> {
   const isBase64Encoded = isBinaryContentType(response.headers.get('content-type'))
@@ -148,7 +73,7 @@ async function convertResponseToAPIGatewayProxyResultV1(
   return result
 }
 
-async function convertResponseToAPIGatewayProxyResultV2(
+export async function convertResponseToAPIGatewayProxyResultV2(
   response: Response,
 ): Promise<APIGatewayProxyResultV2> {
   const isBase64Encoded = isBinaryContentType(response.headers.get('content-type'))
@@ -166,18 +91,23 @@ async function convertResponseToAPIGatewayProxyResultV2(
   return result
 }
 
-function normalizeAPIGatewayProxyEventV2Body(event: APIGatewayProxyEventV2): Buffer {
+export function normalizeAPIGatewayProxyEventV2Body(event: APIGatewayProxyEventV2): Buffer {
   if (Buffer.isBuffer(event.body)) {
     return event.body
-  } else if (typeof event.body === 'string') {
+  }
+
+  if (typeof event.body === 'string') {
     return Buffer.from(event.body, event.isBase64Encoded ? 'base64' : 'utf8')
-  } else if (typeof event.body === 'object') {
+  }
+
+  if (typeof event.body === 'object') {
     return Buffer.from(JSON.stringify(event.body))
   }
+
   return Buffer.from('', 'utf8')
 }
 
-function normalizeAPIGatewayProxyEventQueryParams(event: APIGatewayProxyEvent): string {
+export function normalizeAPIGatewayProxyEventQueryParams(event: APIGatewayProxyEvent): string {
   const params = new URLSearchParams()
 
   if (event.multiValueQueryStringParameters) {
@@ -203,12 +133,12 @@ function normalizeAPIGatewayProxyEventQueryParams(event: APIGatewayProxyEvent): 
   return value ? `?${value}` : ''
 }
 
-function normalizeAPIGatewayProxyEventHeaders(
+export function normalizeAPIGatewayProxyEventHeaders(
   event: APIGatewayProxyEvent | APIGatewayProxyEventV2,
 ): Record<string, string> {
   const headers: Record<string, string> = {}
 
-  if ('multiValueHeaders' in event && event.multiValueHeaders) {
+  if ('multiValueHeaders' in event && event.multiValueHeaders != null) {
     for (const [key, values] of Object.entries(event.multiValueHeaders)) {
       if (values) {
         headers[key.toLowerCase()] = values.join(',')
@@ -216,7 +146,7 @@ function normalizeAPIGatewayProxyEventHeaders(
     }
   }
 
-  if (event.headers) {
+  if (event.headers != null) {
     for (const [key, value] of Object.entries(event.headers)) {
       if (value) {
         headers[key.toLowerCase()] = value
@@ -224,7 +154,7 @@ function normalizeAPIGatewayProxyEventHeaders(
     }
   }
 
-  if ('cookies' in event && event.cookies) {
+  if ('cookies' in event && event.cookies != null) {
     headers['cookie'] = event.cookies.join('; ')
   }
 

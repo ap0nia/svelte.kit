@@ -5,7 +5,8 @@ import {
   HttpLambdaIntegration,
   type HttpLambdaIntegrationProps,
 } from '@aws-cdk/aws-apigatewayv2-integrations-alpha'
-import { Duration, Fn, RemovalPolicy } from 'aws-cdk-lib'
+import type { Config } from '@sveltejs/kit'
+import { CfnOutput, Duration, Fn, RemovalPolicy } from 'aws-cdk-lib'
 import * as awsCloudfront from 'aws-cdk-lib/aws-cloudfront'
 import * as awsCloudfrontOrigins from 'aws-cdk-lib/aws-cloudfront-origins'
 import * as awsIam from 'aws-cdk-lib/aws-iam'
@@ -21,11 +22,16 @@ import { findStaticFiles as findStaticFiles, loadSvelteKitConfig } from './confi
  */
 export type SvelteKitOptions = {
   /**
-   * The directory to build the SvelteKit application to.
+   * The directory to write the build outputs to.
    *
    * @default 'build'
    */
   out?: string
+
+  /**
+   * @default 'prerendered'
+   */
+  prerenderedDirectory?: string
 
   /**
    * Subdirectory in the build directory to serve static assets from S3 to CloudFront.
@@ -46,7 +52,7 @@ export type SvelteKitOptions = {
    *
    * @default 'lambda@edge'
    */
-  lambdaAtEdgeDirectory?: string
+  cloudfrontDirectory?: string
 
   /**
    * The name of the Lambda function handler.
@@ -56,14 +62,32 @@ export type SvelteKitOptions = {
   lambdaHandler?: string
 
   /**
+   * Whether to enable AWS Lambda streaming.
+   *
+   * @see https://aws.amazon.com/blogs/compute/introducing-aws-lambda-response-streaming
+   */
+  stream?: boolean
+
+  /**
+   * @default ''
+   */
+  domainName?: string
+
+  /**
    * Directly customize/override props provided to the constructs.
    */
   constructProps?: SvelteKitConstructProps
+}
 
-  /**
-   * Whether to stream the response from the Lambda function.
-   */
-  stream?: boolean
+const defaultOptions: Required<SvelteKitOptions> = {
+  prerenderedDirectory: 'prerendered',
+  lambdaHandler: 'index.handler',
+  cloudfrontDirectory: 'cloudfront',
+  stream: false,
+  out: 'build',
+  s3Directory: 's3',
+  lambdaDirectory: 'lambda',
+  constructProps: {},
 }
 
 /**
@@ -113,6 +137,12 @@ export type SvelteKitConstructProps = {
 }
 
 /**
+ */
+export type SvelteKitOutputs = {
+  cloudfrontUrl: CfnOutput
+}
+
+/**
  * AWS CDK construct for deploying built SvelteKit applications.
  */
 export class SvelteKit extends Construct {
@@ -147,6 +177,10 @@ export class SvelteKit extends Construct {
   lambdaIntegration: HttpLambdaIntegration
 
   /**
+   */
+  lambdaFunctionUrl: awsLambda.FunctionUrl
+
+  /**
    * The API Gateway HTTP API.
    */
   httpApi: HttpApi
@@ -161,12 +195,7 @@ export class SvelteKit extends Construct {
    * CloudFront origin for the API.
    * The CDN should try to redirect requests for SSR/API here if possible.
    */
-  apiOrigin: awsCloudfrontOrigins.HttpOrigin
-
-  /**
-   * Custom cache policy for the Lambda function.
-   */
-  lambdaCachePolicy: awsCloudfront.CachePolicy
+  lambdaOrigin: awsCloudfrontOrigins.HttpOrigin
 
   /**
    * The CloudFront distribution that serves the website.
@@ -179,27 +208,44 @@ export class SvelteKit extends Construct {
   bucketDeployment: s3Deployment.BucketDeployment
 
   /**
+   */
+  cloudfrontFunction: awsCloudfront.Function
+
+  /**
+   */
+  outputs: SvelteKitOutputs
+
+  /**
    * The configured options used to deploy the infrastructure.
    */
   options: Required<SvelteKitOptions>
 
+  /**
+   */
+  sveltekitConfig: Config
+
   constructor(scope: Construct, id: string, options: SvelteKitOptions = {}) {
     super(scope, id)
 
+    this.sveltekitConfig ??= {}
+
+    const adapter = this.sveltekitConfig.kit?.adapter
+
+    const adapterOptions = adapter?.name === 'adapter-aws' ? adapter : undefined
+
     this.options = {
-      out: options.out ?? 'build',
-      s3Directory: options.s3Directory ?? 's3',
-      lambdaDirectory: options.lambdaDirectory ?? 'lambda',
-      lambdaAtEdgeDirectory: options.lambdaAtEdgeDirectory ?? 'lambda@edge',
-      lambdaHandler: options.lambdaHandler ?? 'index.handler',
-      constructProps: options.constructProps ?? {},
-      stream: options.stream ?? false,
+      ...defaultOptions,
+      ...adapterOptions,
+      ...options,
     }
 
     const s3Directory = path.join(this.options.out, this.options.s3Directory)
+
     const lambdaDirectory = path.join(this.options.out, this.options.lambdaDirectory)
 
-    this.bucket = new awsS3.Bucket(this, 'bucket', {
+    const cloudfrontDirectory = path.join(this.options.out, this.options.cloudfrontDirectory)
+
+    this.bucket = new awsS3.Bucket(this, 'Bucket', {
       removalPolicy: RemovalPolicy.DESTROY,
       autoDeleteObjects: true,
       ...invokeFunctionOrValue(this.options.constructProps.bucket, this),
@@ -207,7 +253,7 @@ export class SvelteKit extends Construct {
 
     this.originAccessIdentity = new awsCloudfront.OriginAccessIdentity(
       this,
-      'cloudfront-OAI',
+      'CloudFront OAI',
       invokeFunctionOrValue(this.options.constructProps.originAccessIdentity, this),
     )
 
@@ -224,7 +270,7 @@ export class SvelteKit extends Construct {
 
     this.bucket.addToResourcePolicy(this.policyStatement)
 
-    this.handler = new awsLambda.Function(this, 'lambda', {
+    this.handler = new awsLambda.Function(this, 'Lambda', {
       runtime: awsLambda.Runtime.NODEJS_18_X,
       code: awsLambda.Code.fromAsset(lambdaDirectory),
       handler: this.options.lambdaHandler,
@@ -234,17 +280,17 @@ export class SvelteKit extends Construct {
     })
 
     this.lambdaIntegration = new HttpLambdaIntegration(
-      'lambda-integration',
+      'Lambda Integration',
       this.handler,
       invokeFunctionOrValue(this.options.constructProps.lambdaIntegration, this),
     )
 
-    const lambdaUrl = this.handler.addFunctionUrl({
+    this.lambdaFunctionUrl = this.handler.addFunctionUrl({
       authType: awsLambda.FunctionUrlAuthType.NONE,
       invokeMode: options.stream ? awsLambda.InvokeMode.RESPONSE_STREAM : undefined,
     })
 
-    this.httpApi = new HttpApi(this, 'api', {
+    this.httpApi = new HttpApi(this, 'HTTP API', {
       createDefaultStage: true,
       defaultIntegration: this.lambdaIntegration,
       ...invokeFunctionOrValue(this.options.constructProps.httpApi, this),
@@ -255,21 +301,15 @@ export class SvelteKit extends Construct {
       ...invokeFunctionOrValue(this.options.constructProps.s3Origin, this),
     })
 
-    this.apiOrigin = new awsCloudfrontOrigins.HttpOrigin(
-      Fn.select(2, Fn.split('/', lambdaUrl.url)),
+    this.lambdaOrigin = new awsCloudfrontOrigins.HttpOrigin(
+      Fn.select(2, Fn.split('/', this.lambdaFunctionUrl.url)),
       invokeFunctionOrValue(this.options.constructProps.apiOrigin, this),
     )
 
-    this.lambdaCachePolicy = new awsCloudfront.CachePolicy(this, 'cache-policy', {
-      headerBehavior: awsCloudfront.CacheHeaderBehavior.none(),
-      queryStringBehavior: awsCloudfront.CacheQueryStringBehavior.none(),
-      cookieBehavior: awsCloudfront.CacheCookieBehavior.none(),
-      enableAcceptEncodingGzip: true,
-      enableAcceptEncodingBrotli: true,
-      minTtl: Duration.seconds(0),
-      maxTtl: Duration.seconds(31536000),
-      defaultTtl: Duration.seconds(0),
-      ...invokeFunctionOrValue(this.options.constructProps.cachePolicy, this),
+    this.cloudfrontFunction = new awsCloudfront.Function(this, 'CloudFront Function', {
+      code: awsCloudfront.FunctionCode.fromFile({
+        filePath: path.join(cloudfrontDirectory, 'index.js'),
+      }),
     })
 
     const staticBehaviourProps = invokeFunctionOrValue(
@@ -277,13 +317,19 @@ export class SvelteKit extends Construct {
       this,
     )
 
-    this.distribution = new awsCloudfront.Distribution(this, 'cloudfront-distribution', {
+    this.distribution = new awsCloudfront.Distribution(this, 'CloudFront Distribution', {
       defaultBehavior: {
-        origin: this.apiOrigin,
+        origin: this.lambdaOrigin,
         allowedMethods: awsCloudfront.AllowedMethods.ALLOW_ALL,
         cachePolicy: awsCloudfront.CachePolicy.CACHING_DISABLED,
         originRequestPolicy: awsCloudfront.OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
         viewerProtocolPolicy: awsCloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+        functionAssociations: [
+          {
+            function: this.cloudfrontFunction,
+            eventType: awsCloudfront.FunctionEventType.VIEWER_REQUEST,
+          },
+        ],
       },
       ...invokeFunctionOrValue(this.options.constructProps.distribution, this),
       additionalBehaviors: {
@@ -299,7 +345,7 @@ export class SvelteKit extends Construct {
       },
     })
 
-    this.bucketDeployment = new s3Deployment.BucketDeployment(this, 'bucket-deployment', {
+    this.bucketDeployment = new s3Deployment.BucketDeployment(this, 'Bucket Deployment', {
       sources: [s3Deployment.Source.asset(s3Directory)],
       destinationBucket: this.bucket,
       distribution: this.distribution,
@@ -318,13 +364,20 @@ export class SvelteKit extends Construct {
         ...staticBehaviourProps,
       })
     })
+
+    this.outputs = {
+      cloudfrontUrl: new CfnOutput(this, 'CloudFront URL', {
+        description: 'CloudFront URL',
+        value: `https://${this.distribution.distributionDomainName}`,
+      }),
+    }
   }
 
   /**
    */
   async init() {
-    const config = await loadSvelteKitConfig()
-    console.log('config loaded: ', config)
+    this.sveltekitConfig = await loadSvelteKitConfig()
+    console.log('config loaded: ', this.sveltekitConfig)
   }
 }
 

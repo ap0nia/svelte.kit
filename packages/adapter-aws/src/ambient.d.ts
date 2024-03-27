@@ -12,15 +12,20 @@ declare module 'MANIFEST' {
   export const base: string
 
   export const prerenderedFileMappings: Map<string, string>
+
+  /**
+   * @see https://kit.svelte.dev/docs/configuration#appdir
+   */
+  export const appDir: string
+
+  /**
+   * @see https://kit.svelte.dev/docs/configuration#paths
+   */
+  export const basePath: string
 }
 
 declare module 'SERVER' {
   export { Server } from '@sveltejs/kit'
-}
-
-interface ImportMeta {
-  SERVER_DIR: string
-  ENV_PREFIX?: string
 }
 
 declare namespace App {

@@ -1,21 +1,8 @@
+import type { SvelteKitOptions } from '@svelte.kit/cdk'
 import type { Adapter } from '@sveltejs/kit'
 import './ambient.js'
 
-export interface AdapterOptions {
-  /**
-   * Whether to enable AWS Lambda streaming.
-   *
-   * @see https://aws.amazon.com/blogs/compute/introducing-aws-lambda-response-streaming
-   */
-  stream?: boolean
-
-  /**
-   * The directory to write the build outputs to.
-   *
-   * @default 'build'
-   */
-  out?: string
-
+export interface AdapterOptions extends Omit<SvelteKitOptions, 'constructProps'> {
   /**
    * Whether to precompress the static assets.
    *
@@ -36,27 +23,6 @@ export interface AdapterOptions {
    * @default true
    */
   polyfill?: boolean
-
-  /**
-   * Subdirectory in the build directory to serve static assets from S3 to CloudFront.
-   *
-   * @default 's3'
-   */
-  s3Directory?: string
-
-  /**
-   * Subdirectory in the build directory to serve lambda files.
-   *
-   * @default 'lambda'
-   */
-  lambdaDirectory?: string
-
-  /**
-   * Subdirectory in the build directory to serve CloudFront (function) files.
-   *
-   * @default 'lambda@edge'
-   */
-  lambdaAtEdgeDirectory?: string
 
   /**
    * The directory that will be uploaded to the Lambda Function.
