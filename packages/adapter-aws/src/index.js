@@ -227,7 +227,7 @@ function createAdapter(userOptions = {}) {
       const buildOptions =
         typeof options.esbuild === 'function'
           ? options.esbuild(defaultBuildOptions)
-          : options.esbuild
+          : { ...defaultBuildOptions, ...options.esbuild }
 
       builder.log.info(`Compiling Lambda function to ${lambdaFunction}`)
       await esbuild.build(buildOptions)
