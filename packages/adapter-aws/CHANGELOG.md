@@ -1,5 +1,12 @@
 # @svelte.kit/adapter-aws
 
+## 0.4.0
+
+### Minor Changes
+
+- 47bc10d: feat(adapter-aws): esbuild options
+  feat(cdk): function or nullish values for construct prop overrides
+
 ## 0.3.0
 
 ### Minor Changes
