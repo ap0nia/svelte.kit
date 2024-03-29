@@ -1,5 +1,11 @@
 # @svelte.kit/cdk
 
+## 0.4.1
+
+### Patch Changes
+
+- 8152439: fix: merge default build options
+
 ## 0.4.0
 
 ### Minor Changes
