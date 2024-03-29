@@ -1,8 +1,15 @@
 import type { SvelteKitOptions } from '@svelte.kit/cdk'
 import type { Adapter } from '@sveltejs/kit'
+import type { BuildOptions } from 'esbuild'
+
 import './ambient.js'
 
 export interface AdapterOptions extends Omit<SvelteKitOptions, 'constructProps'> {
+  /**
+   * Build options for the AwS Lambda function.
+   */
+  esbuild?: BuildOptions | ((options: BuildOptions) => BuildOptions)
+
   /**
    * Whether to precompress the static assets.
    *

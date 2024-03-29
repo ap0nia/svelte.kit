@@ -16,6 +16,7 @@ const __dirname = path.dirname(url.fileURLToPath(import.meta.url))
  * @type {Required<import('.').AdapterOptions>}
  */
 const defaultOptions = {
+  esbuild: {},
   domainName: '',
   prerenderedDirectory: 'prerendered',
   lambdaHandler: 'index.handler',
@@ -85,6 +86,9 @@ function createAdapter(userOptions = {}) {
        */
       const s3Directory = path.join(outdir, options.s3Directory, builder.config.kit.paths.base)
 
+      /**
+       * Directory for compiled CloudFront Functions.
+       */
       const cloudfrontDirectory = path.join(outdir, options.cloudfrontDirectory)
 
       /**
@@ -135,12 +139,14 @@ function createAdapter(userOptions = {}) {
       builder.rimraf(options.out)
       builder.mkdirp(options.out)
 
+      builder.log.info(`Writing static assets to ${s3Directory}`)
       builder.writeClient(s3Directory)
 
       if (options.precompress) {
         await builder.compress(s3Directory)
       }
 
+      builder.log.info(`Writing server to ${serverDirectory}`)
       builder.writeServer(serverDirectory)
 
       const prerenderedFiles = builder.writePrerendered(prerenderedDirectory)
@@ -204,7 +210,10 @@ function createAdapter(userOptions = {}) {
         DOMAIN_NAME: JSON.stringify(options.domainName),
       }
 
-      await esbuild.build({
+      /**
+       * @type {esbuild.BuildOptions}
+       */
+      const defaultBuildOptions = {
         entryPoints: {
           [lambdaFunction]: templateLambdaFunction,
         },
@@ -213,7 +222,19 @@ function createAdapter(userOptions = {}) {
         outdir,
         define,
         plugins: [resolverPlugin],
-      })
+      }
+
+      const buildOptions =
+        typeof options.esbuild === 'function'
+          ? options.esbuild(defaultBuildOptions)
+          : options.esbuild
+
+      builder.log.info(`Compiling Lambda function to ${lambdaFunction}`)
+      await esbuild.build(buildOptions)
+
+      builder.log.info(`Compiling CloudFront function to ${cloudfrontFunction}`)
+
+      const globalName = 'main'
 
       /**
        * @see https://github.com/jill64/cf2-builder/blob/main/src/cmd.ts
@@ -226,12 +247,12 @@ function createAdapter(userOptions = {}) {
         target: 'es5',
         platform: 'neutral',
         format: 'iife',
-        globalName: 'main',
+        globalName,
         outdir,
         define,
         plugins: [resolverPlugin],
         footer: {
-          js: 'function handler (event) { return main.default(event); }',
+          js: `function handler (event) { return ${globalName}.default(event); }`,
         },
       })
 
