@@ -128,6 +128,7 @@ export type SvelteKitConstructProps = {
 /**
  */
 export type SvelteKitOutputs = {
+  lambdaFunctionUrl: CfnOutput
   cloudfrontUrl: CfnOutput
 }
 
@@ -390,6 +391,10 @@ export class SvelteKit extends Construct {
     })
 
     this.outputs = {
+      lambdaFunctionUrl: new CfnOutput(this, 'Lambda Function URL', {
+        description: 'Lambda Function URL',
+        value: `https://${this.lambdaFunctionUrl.url}`,
+      }),
       cloudfrontUrl: new CfnOutput(this, 'CloudFront URL', {
         description: 'CloudFront URL',
         value: `https://${this.distribution.distributionDomainName}`,

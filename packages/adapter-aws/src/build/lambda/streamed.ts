@@ -70,6 +70,7 @@ export const handler = awslambda.streamifyResponse(async (event, responseStream,
   })
 
   if (!response.body) {
+    responseStream.write('')
     responseStream.end()
     return
   }
