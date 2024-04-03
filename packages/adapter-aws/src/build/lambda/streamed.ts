@@ -69,12 +69,6 @@ export const handler = awslambda.streamifyResponse(async (event, responseStream,
     getClientAddress: () => internalEvent.remoteAddress,
   })
 
-  if (!response.body) {
-    responseStream.write('')
-    responseStream.end()
-    return
-  }
-
   const responseHeadersEntries = [] as [string, string][]
 
   response.headers.forEach((value, key) => {
@@ -85,6 +79,12 @@ export const handler = awslambda.streamifyResponse(async (event, responseStream,
     statusCode: response.status,
     headers: Object.fromEntries(responseHeadersEntries),
   })
+
+  if (!response.body) {
+    httpResponseStream.write('')
+    httpResponseStream.end()
+    return
+  }
 
   const reader = response.body.getReader()
 
