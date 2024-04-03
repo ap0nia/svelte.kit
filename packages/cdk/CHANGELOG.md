@@ -1,5 +1,11 @@
 # @svelte.kit/cdk
 
+## 0.4.3
+
+### Patch Changes
+
+- 4edd330: fix: function url output
+
 ## 0.4.2
 
 ### Patch Changes
