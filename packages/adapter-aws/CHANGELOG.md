@@ -1,5 +1,12 @@
 # @svelte.kit/adapter-aws
 
+## 0.4.2
+
+### Patch Changes
+
+- a37954d: feat: add more outputs to cdk
+  fix: adapter-aws streamed response has to write empty string for empty response
+
 ## 0.4.1
 
 ### Patch Changes
