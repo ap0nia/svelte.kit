@@ -77,7 +77,7 @@ function createAdapter(userOptions = {}) {
      */
     adapt: async (builder) => {
       /**
-       * Out directory.
+       * Root out directory.
        */
       const outdir = path.resolve(options.out)
 
@@ -127,14 +127,7 @@ function createAdapter(userOptions = {}) {
         options.stream ? streamedHandlerTemplate : bufferedHandlerTemplate,
       )
 
-      /**
-       * Location of the compiled AWS Lambda handler.
-       */
-      const lambdaFunction = path.join(lambdaDirectory, 'index')
-
       const templateCloudfrontFunction = path.join(__dirname, 'build', 'cloudfront', 'index.ts')
-
-      const cloudfrontFunction = path.join(cloudfrontDirectory, 'index')
 
       builder.rimraf(options.out)
       builder.mkdirp(options.out)
@@ -215,11 +208,11 @@ function createAdapter(userOptions = {}) {
        */
       const defaultBuildOptions = {
         entryPoints: {
-          [lambdaFunction]: templateLambdaFunction,
+          index: templateLambdaFunction,
         },
         bundle: true,
         platform: 'node',
-        outdir,
+        outdir: lambdaDirectory,
         define,
         plugins: [resolverPlugin],
       }
@@ -229,10 +222,7 @@ function createAdapter(userOptions = {}) {
           ? options.esbuild(defaultBuildOptions)
           : { ...defaultBuildOptions, ...options.esbuild }
 
-      builder.log.info(`Compiling Lambda function to ${lambdaFunction}`)
       await esbuild.build(buildOptions)
-
-      builder.log.info(`Compiling CloudFront function to ${cloudfrontFunction}`)
 
       const globalName = 'main'
 
@@ -241,14 +231,14 @@ function createAdapter(userOptions = {}) {
        */
       await esbuild.build({
         entryPoints: {
-          [cloudfrontFunction]: templateCloudfrontFunction,
+          index: templateCloudfrontFunction,
         },
         bundle: true,
         target: 'es5',
         platform: 'neutral',
         format: 'iife',
         globalName,
-        outdir,
+        outdir: cloudfrontDirectory,
         define,
         plugins: [resolverPlugin],
         footer: {
