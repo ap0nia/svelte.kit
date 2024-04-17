@@ -1,5 +1,11 @@
 # @svelte.kit/adapter-aws
 
+## 0.5.0
+
+### Minor Changes
+
+- a2f4921: refactor: change outdirectory to specifically lambda or cloudfront directory instead of root of build/
+
 ## 0.4.3
 
 ### Patch Changes
